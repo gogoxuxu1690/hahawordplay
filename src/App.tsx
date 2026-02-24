@@ -2,11 +2,45 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { AppLayout } from "@/components/AppLayout";
+import Auth from "./pages/Auth";
+import ManageWords from "./pages/ManageWords";
+import GameCenter from "./pages/GameCenter";
+import Progress from "./pages/Progress";
+import FlashcardsGame from "./pages/games/FlashcardsGame";
+import MultipleChoiceGame from "./pages/games/MultipleChoiceGame";
+import MatchingGame from "./pages/games/MatchingGame";
+import FillBlanksGame from "./pages/games/FillBlanksGame";
+import WordScrambleGame from "./pages/games/WordScrambleGame";
+import MemoryMatchGame from "./pages/games/MemoryMatchGame";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/auth" replace />;
+  return <AppLayout>{children}</AppLayout>;
+}
+
+const AppRoutes = () => (
+  <Routes>
+    <Route path="/auth" element={<Auth />} />
+    <Route path="/" element={<ProtectedRoute><ManageWords /></ProtectedRoute>} />
+    <Route path="/games" element={<ProtectedRoute><GameCenter /></ProtectedRoute>} />
+    <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
+    <Route path="/play/flashcards" element={<ProtectedRoute><FlashcardsGame /></ProtectedRoute>} />
+    <Route path="/play/multiple-choice" element={<ProtectedRoute><MultipleChoiceGame /></ProtectedRoute>} />
+    <Route path="/play/matching" element={<ProtectedRoute><MatchingGame /></ProtectedRoute>} />
+    <Route path="/play/fill-blanks" element={<ProtectedRoute><FillBlanksGame /></ProtectedRoute>} />
+    <Route path="/play/word-scramble" element={<ProtectedRoute><WordScrambleGame /></ProtectedRoute>} />
+    <Route path="/play/memory-match" element={<ProtectedRoute><MemoryMatchGame /></ProtectedRoute>} />
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -14,11 +48,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
