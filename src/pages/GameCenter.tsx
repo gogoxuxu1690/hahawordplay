@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Layers, Shuffle, CheckCircle, PenTool, Puzzle, Brain } from 'lucide-react';
+import { Layers, Shuffle, CheckCircle, PenTool, Puzzle, Brain, icons } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +10,16 @@ interface Group {
   id: string;
   name: string;
   emoji: string;
+  icon_name: string | null;
 }
+
+const GroupIcon = ({ group }: { group: Group }) => {
+  if (group.icon_name) {
+    const Icon = icons[group.icon_name as keyof typeof icons];
+    if (Icon && typeof Icon === 'function') return <Icon size={18} />;
+  }
+  return <span>{group.emoji || '📚'}</span>;
+};
 
 const games = [
   { id: 'flashcards', name: 'Flashcards', icon: Layers, color: 'bg-coral', desc: 'Flip to reveal' },
@@ -69,7 +78,7 @@ const GameCenter = () => {
                     : 'bg-card text-foreground border border-border hover:border-primary/50'
                 }`}
               >
-                <span>{group.emoji}</span>
+                <GroupIcon group={group} />
                 <span>{group.name}</span>
               </motion.button>
             ))}

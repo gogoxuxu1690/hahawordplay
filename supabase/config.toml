@@ -1,1 +1,4 @@
 project_id = "dfaaxrvnbftlftqonabx"
+
+[functions.pixabay-search]
+verify_jwt = false
