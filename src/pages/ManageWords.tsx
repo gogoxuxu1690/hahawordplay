@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Edit2, Volume2, Image as ImageIcon, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Edit2, Volume2, ChevronDown, ChevronRight, icons } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import LucideIconPicker from '@/components/LucideIconPicker';
+import WordImagePicker from '@/components/WordImagePicker';
 
 interface Group {
   id: string;
   name: string;
   emoji: string;
+  icon_name: string | null;
 }
 
 interface Word {
@@ -25,6 +26,14 @@ interface Word {
   voice_gender: string;
   group_id: string;
 }
+
+const GroupIcon = ({ group, size = 24 }: { group: Group; size?: number }) => {
+  if (group.icon_name) {
+    const Icon = icons[group.icon_name as keyof typeof icons];
+    if (Icon && typeof Icon === 'function') return <Icon size={size} />;
+  }
+  return <span className="text-2xl">{group.emoji || '📚'}</span>;
+};
 
 const ManageWords = () => {
   const { user } = useAuth();
@@ -37,7 +46,7 @@ const ManageWords = () => {
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [groupName, setGroupName] = useState('');
-  const [groupEmoji, setGroupEmoji] = useState('📚');
+  const [groupIconName, setGroupIconName] = useState('Book');
 
   // Word form
   const [wordDialogOpen, setWordDialogOpen] = useState(false);
@@ -75,14 +84,14 @@ const ManageWords = () => {
   const saveGroup = async () => {
     if (!groupName.trim()) return;
     if (editingGroup) {
-      await supabase.from('groups').update({ name: groupName, emoji: groupEmoji }).eq('id', editingGroup.id);
+      await supabase.from('groups').update({ name: groupName, icon_name: groupIconName }).eq('id', editingGroup.id);
     } else {
-      await supabase.from('groups').insert({ name: groupName, emoji: groupEmoji, user_id: user!.id });
+      await supabase.from('groups').insert({ name: groupName, icon_name: groupIconName, emoji: '📚', user_id: user!.id });
     }
     setGroupDialogOpen(false);
     setEditingGroup(null);
     setGroupName('');
-    setGroupEmoji('📚');
+    setGroupIconName('Book');
     fetchData();
     toast({ title: editingGroup ? 'Group updated!' : 'Group created! 🎉' });
   };
@@ -138,14 +147,6 @@ const ManageWords = () => {
     toast({ title: 'Word deleted' });
   };
 
-  const fetchUnsplashImage = async (query: string) => {
-    // Use a placeholder since Unsplash requires an API key
-    setWordImage(`https://source.unsplash.com/400x300/?${encodeURIComponent(query)}`);
-    toast({ title: 'Image fetched! 📸' });
-  };
-
-  const emojiOptions = ['📚', '🐾', '🍎', '🏠', '🎨', '⚽', '🎵', '🌍', '🔢', '👔', '🍕', '🚗'];
-
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
@@ -155,11 +156,11 @@ const ManageWords = () => {
         </div>
         <Dialog open={groupDialogOpen} onOpenChange={setGroupDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="rounded-xl gap-2 font-bold" onClick={() => { setEditingGroup(null); setGroupName(''); setGroupEmoji('📚'); }}>
+            <Button className="rounded-xl gap-2 font-bold" onClick={() => { setEditingGroup(null); setGroupName(''); setGroupIconName('Book'); }}>
               <Plus className="w-4 h-4" /> New Group
             </Button>
           </DialogTrigger>
-          <DialogContent className="rounded-2xl">
+          <DialogContent className="rounded-2xl max-w-md">
             <DialogHeader>
               <DialogTitle className="font-display">{editingGroup ? 'Edit Group' : 'New Group'}</DialogTitle>
             </DialogHeader>
@@ -169,15 +170,8 @@ const ManageWords = () => {
                 <Input value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="e.g. Animals" className="rounded-xl" />
               </div>
               <div className="space-y-2">
-                <Label>Emoji</Label>
-                <div className="flex flex-wrap gap-2">
-                  {emojiOptions.map(e => (
-                    <button key={e} onClick={() => setGroupEmoji(e)}
-                      className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${groupEmoji === e ? 'bg-primary/20 ring-2 ring-primary' : 'bg-muted hover:bg-muted/80'}`}>
-                      {e}
-                    </button>
-                  ))}
-                </div>
+                <Label>Icon</Label>
+                <LucideIconPicker value={groupIconName} onChange={setGroupIconName} />
               </div>
               <Button onClick={saveGroup} className="w-full rounded-xl font-bold">Save Group</Button>
             </div>
@@ -209,14 +203,14 @@ const ManageWords = () => {
                   onClick={() => setExpandedGroup(isExpanded ? null : group.id)}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">{group.emoji}</span>
+                    <GroupIcon group={group} size={24} />
                     <div>
                       <h3 className="font-display font-bold text-foreground">{group.name}</h3>
                       <p className="text-sm text-muted-foreground">{groupWords.length} words</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" className="rounded-xl" onClick={e => { e.stopPropagation(); setEditingGroup(group); setGroupName(group.name); setGroupEmoji(group.emoji); setGroupDialogOpen(true); }}>
+                    <Button variant="ghost" size="sm" className="rounded-xl" onClick={e => { e.stopPropagation(); setEditingGroup(group); setGroupName(group.name); setGroupIconName(group.icon_name || 'Book'); setGroupDialogOpen(true); }}>
                       <Edit2 className="w-4 h-4" />
                     </Button>
                     <Button variant="ghost" size="sm" className="rounded-xl text-destructive" onClick={e => { e.stopPropagation(); deleteGroup(group.id); }}>
@@ -270,7 +264,7 @@ const ManageWords = () => {
 
       {/* Word Dialog */}
       <Dialog open={wordDialogOpen} onOpenChange={setWordDialogOpen}>
-        <DialogContent className="rounded-2xl">
+        <DialogContent className="rounded-2xl max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display">{editingWord ? 'Edit Word' : 'Add Word'}</DialogTitle>
           </DialogHeader>
@@ -281,28 +275,32 @@ const ManageWords = () => {
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea value={wordDesc} onChange={e => setWordDesc(e.target.value)} placeholder="A small furry animal..." className="rounded-xl" />
+              <Input value={wordDesc} onChange={e => setWordDesc(e.target.value)} placeholder="A small furry animal..." className="rounded-xl" />
             </div>
             <div className="space-y-2">
-              <Label>Image URL</Label>
-              <div className="flex gap-2">
-                <Input value={wordImage} onChange={e => setWordImage(e.target.value)} placeholder="https://..." className="rounded-xl flex-1" />
-                <Button variant="outline" className="rounded-xl" onClick={() => fetchUnsplashImage(wordText)} disabled={!wordText}>
-                  <ImageIcon className="w-4 h-4" />
-                </Button>
-              </div>
+              <Label>Image</Label>
+              <WordImagePicker value={wordImage} onChange={setWordImage} wordText={wordText} />
             </div>
             <div className="space-y-2">
               <Label>Voice</Label>
-              <Select value={wordVoice} onValueChange={setWordVoice}>
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="male">Male</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={wordVoice === 'female' ? 'default' : 'outline'}
+                  className="flex-1 rounded-xl"
+                  onClick={() => setWordVoice('female')}
+                >
+                  👩 Female
+                </Button>
+                <Button
+                  type="button"
+                  variant={wordVoice === 'male' ? 'default' : 'outline'}
+                  className="flex-1 rounded-xl"
+                  onClick={() => setWordVoice('male')}
+                >
+                  👨 Male
+                </Button>
+              </div>
             </div>
             <Button onClick={saveWord} className="w-full rounded-xl font-bold">Save Word</Button>
           </div>
