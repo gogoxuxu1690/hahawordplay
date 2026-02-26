@@ -18,7 +18,6 @@ Deno.serve(async (req) => {
     }
 
     const apiKey = Deno.env.get('PIXABAY_API_KEY');
-    console.log('API key length:', apiKey?.length, 'starts with:', apiKey?.substring(0, 5));
     const url = `https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(query)}&image_type=photo&per_page=10&safesearch=true`;
     const res = await fetch(url);
     if (!res.ok) {
