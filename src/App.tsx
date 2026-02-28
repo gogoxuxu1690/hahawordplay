@@ -41,6 +41,9 @@ const AppRoutes = () => (
     <Route path="/play/fill-blanks" element={<ProtectedRoute><FillBlanksGame /></ProtectedRoute>} />
     <Route path="/play/word-scramble" element={<ProtectedRoute><WordScrambleGame /></ProtectedRoute>} />
     <Route path="/play/memory-match" element={<ProtectedRoute><MemoryMatchGame /></ProtectedRoute>} />
+    <Route path="/play/word-shooter" element={<ProtectedRoute><WordShooterGame /></ProtectedRoute>} />
+    <Route path="/play/picture-dictation" element={<ProtectedRoute><PictureDictationGame /></ProtectedRoute>} />
+    <Route path="/play/woodpecker" element={<ProtectedRoute><WoodpeckerGame /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

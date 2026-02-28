@@ -49,7 +49,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 </Link>
               );
             })}
-            <Button variant="ghost" size="sm" className="rounded-xl ml-2" onClick={signOut}>
+            <Button variant="ghost" size="sm" className="rounded-xl" onClick={toggleMute} title={muted ? 'Unmute' : 'Mute'}>
+              {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </Button>
+            <Button variant="ghost" size="sm" className="rounded-xl" onClick={signOut}>
               <LogOut className="w-4 h-4" />
             </Button>
           </nav>
