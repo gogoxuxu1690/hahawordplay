@@ -1,9 +1,10 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Gamepad2, GraduationCap, LogOut, BarChart3 } from 'lucide-react';
+import { BookOpen, Gamepad2, GraduationCap, LogOut, BarChart3, Volume2, VolumeX } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { getGlobalMuted, setGlobalMuted, subscribeGlobalMuted } from '@/hooks/useGameSounds';
 
 const navItems = [
   { to: '/', label: 'Manage Words', icon: BookOpen },
