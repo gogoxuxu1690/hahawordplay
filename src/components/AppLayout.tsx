@@ -15,6 +15,11 @@ const navItems = [
 export function AppLayout({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const { signOut, user } = useAuth();
+  const [muted, setMuted] = useState(getGlobalMuted());
+
+  useEffect(() => subscribeGlobalMuted(setMuted), []);
+
+  const toggleMute = () => setGlobalMuted(!muted);
 
   return (
     <div className="min-h-screen bg-background">
