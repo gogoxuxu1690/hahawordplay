@@ -116,7 +116,7 @@ const WoodpeckerGame = () => {
       {/* Tree with holes */}
       <div className="relative rounded-2xl overflow-hidden bg-gradient-to-b from-emerald-800/20 to-amber-900/30 border border-border" style={{ height: 340 }}>
         {/* Tree trunk visual */}
-        <div className="absolute inset-x-1/3 inset-y-0 bg-gradient-to-b from-amber-700/20 to-amber-900/30 rounded-t-3xl" />
+        <div className="absolute inset-x-1/3 inset-y-0 rounded-t-3xl" style={{ background: 'linear-gradient(to bottom, hsl(30 60% 30% / 0.2), hsl(30 60% 20% / 0.3))' }} />
 
         {/* Caterpillars in holes */}
         <AnimatePresence>
