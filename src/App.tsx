@@ -15,6 +15,9 @@ import MatchingGame from "./pages/games/MatchingGame";
 import FillBlanksGame from "./pages/games/FillBlanksGame";
 import WordScrambleGame from "./pages/games/WordScrambleGame";
 import MemoryMatchGame from "./pages/games/MemoryMatchGame";
+import WordShooterGame from "./pages/games/WordShooterGame";
+import PictureDictationGame from "./pages/games/PictureDictationGame";
+import WoodpeckerGame from "./pages/games/WoodpeckerGame";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
