@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Layers, Shuffle, CheckCircle, PenTool, Puzzle, Brain, icons } from 'lucide-react';
+import { Layers, Shuffle, CheckCircle, PenTool, Puzzle, Brain, Crosshair, Ear, Bird, icons } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
