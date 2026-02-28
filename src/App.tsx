@@ -15,6 +15,9 @@ import MatchingGame from "./pages/games/MatchingGame";
 import FillBlanksGame from "./pages/games/FillBlanksGame";
 import WordScrambleGame from "./pages/games/WordScrambleGame";
 import MemoryMatchGame from "./pages/games/MemoryMatchGame";
+import WordShooterGame from "./pages/games/WordShooterGame";
+import PictureDictationGame from "./pages/games/PictureDictationGame";
+import WoodpeckerGame from "./pages/games/WoodpeckerGame";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +41,9 @@ const AppRoutes = () => (
     <Route path="/play/fill-blanks" element={<ProtectedRoute><FillBlanksGame /></ProtectedRoute>} />
     <Route path="/play/word-scramble" element={<ProtectedRoute><WordScrambleGame /></ProtectedRoute>} />
     <Route path="/play/memory-match" element={<ProtectedRoute><MemoryMatchGame /></ProtectedRoute>} />
+    <Route path="/play/word-shooter" element={<ProtectedRoute><WordShooterGame /></ProtectedRoute>} />
+    <Route path="/play/picture-dictation" element={<ProtectedRoute><PictureDictationGame /></ProtectedRoute>} />
+    <Route path="/play/woodpecker" element={<ProtectedRoute><WoodpeckerGame /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

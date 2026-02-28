@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Layers, Shuffle, CheckCircle, PenTool, Puzzle, Brain, icons } from 'lucide-react';
+import { Layers, Shuffle, CheckCircle, PenTool, Puzzle, Brain, Crosshair, Ear, Bird, icons } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,6 +28,9 @@ const games = [
   { id: 'fill-blanks', name: 'Fill in Blanks', icon: PenTool, color: 'bg-sunny', desc: 'Complete the word' },
   { id: 'word-scramble', name: 'Word Scramble', icon: Shuffle, color: 'bg-lavender', desc: 'Unscramble letters' },
   { id: 'memory-match', name: 'Memory Match', icon: Brain, color: 'bg-rose', desc: 'Find matching pairs' },
+  { id: 'word-shooter', name: 'Word Shooter', icon: Crosshair, color: 'bg-coral', desc: 'Shoot the right word' },
+  { id: 'picture-dictation', name: 'Picture Dictation', icon: Ear, color: 'bg-sky', desc: 'Listen & pick the image' },
+  { id: 'woodpecker', name: 'Woodpecker', icon: Bird, color: 'bg-mint', desc: 'Peck the right caterpillar' },
 ];
 
 const GameCenter = () => {

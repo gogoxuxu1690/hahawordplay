@@ -1,9 +1,10 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Gamepad2, GraduationCap, LogOut, BarChart3 } from 'lucide-react';
+import { BookOpen, Gamepad2, GraduationCap, LogOut, BarChart3, Volume2, VolumeX } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { getGlobalMuted, setGlobalMuted, subscribeGlobalMuted } from '@/hooks/useGameSounds';
 
 const navItems = [
   { to: '/', label: 'Manage Words', icon: BookOpen },
@@ -14,6 +15,11 @@ const navItems = [
 export function AppLayout({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const { signOut, user } = useAuth();
+  const [muted, setMuted] = useState(getGlobalMuted());
+
+  useEffect(() => subscribeGlobalMuted(setMuted), []);
+
+  const toggleMute = () => setGlobalMuted(!muted);
 
   return (
     <div className="min-h-screen bg-background">
@@ -43,7 +49,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 </Link>
               );
             })}
-            <Button variant="ghost" size="sm" className="rounded-xl ml-2" onClick={signOut}>
+            <Button variant="ghost" size="sm" className="rounded-xl" onClick={toggleMute} title={muted ? 'Unmute' : 'Mute'}>
+              {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </Button>
+            <Button variant="ghost" size="sm" className="rounded-xl" onClick={signOut}>
               <LogOut className="w-4 h-4" />
             </Button>
           </nav>

@@ -20,6 +20,9 @@ const gameLabels: Record<string, string> = {
   'fill-blanks': '✏️ Fill in Blanks',
   'word-scramble': '🔀 Word Scramble',
   'memory-match': '🧠 Memory Match',
+  'word-shooter': '🎯 Word Shooter',
+  'picture-dictation': '🎧 Picture Dictation',
+  'woodpecker': '🐦 Woodpecker',
 };
 
 const Progress = () => {
