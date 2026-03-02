@@ -20,7 +20,7 @@ const WordShooterGame = () => {
   const [results, setResults] = useState<boolean[]>([]);
   const [finished, setFinished] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  
 
   const current = words[currentIndex];
 
@@ -41,11 +41,6 @@ const WordShooterGame = () => {
   useEffect(() => {
     if (!current || finished) return;
     spawnBubbles();
-    // Auto-miss after 6 seconds
-    timerRef.current = setTimeout(() => {
-      handleSelect('__timeout__');
-    }, 6000);
-    return () => clearTimeout(timerRef.current);
   }, [currentIndex, current, finished]);
 
   const handleSelect = async (word: string) => {
