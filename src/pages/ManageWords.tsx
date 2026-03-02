@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Edit2, Volume2, ChevronDown, ChevronRight, icons } from 'lucide-react';
+import { Plus, Trash2, Edit2, Volume2, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import LucideIconPicker from '@/components/LucideIconPicker';
+import GroupImagePicker from '@/components/GroupImagePicker';
 import WordImagePicker from '@/components/WordImagePicker';
 
 interface Group {
@@ -28,9 +28,8 @@ interface Word {
 }
 
 const GroupIcon = ({ group, size = 24 }: { group: Group; size?: number }) => {
-  if (group.icon_name) {
-    const Icon = icons[group.icon_name as keyof typeof icons];
-    if (Icon && typeof Icon === 'function') return <Icon size={size} />;
+  if (group.icon_name && group.icon_name.startsWith('http')) {
+    return <img src={group.icon_name} alt="" className="rounded-lg object-cover" style={{ width: size, height: size }} />;
   }
   return <span className="text-2xl">{group.emoji || '📚'}</span>;
 };
@@ -160,7 +159,7 @@ const ManageWords = () => {
               <Plus className="w-4 h-4" /> New Group
             </Button>
           </DialogTrigger>
-          <DialogContent className="rounded-2xl max-w-md">
+           <DialogContent className="rounded-2xl max-w-md max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-display">{editingGroup ? 'Edit Group' : 'New Group'}</DialogTitle>
             </DialogHeader>
@@ -171,7 +170,7 @@ const ManageWords = () => {
               </div>
               <div className="space-y-2">
                 <Label>Icon</Label>
-                <LucideIconPicker value={groupIconName} onChange={setGroupIconName} />
+                <GroupImagePicker value={groupIconName} onChange={setGroupIconName} />
               </div>
               <Button onClick={saveGroup} className="w-full rounded-xl font-bold">Save Group</Button>
             </div>

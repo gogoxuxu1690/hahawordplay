@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameWords, useRecordResult } from '@/hooks/useGameWords';
 import { useGameSounds } from '@/hooks/useGameSounds';
@@ -20,7 +20,7 @@ const WordShooterGame = () => {
   const [results, setResults] = useState<boolean[]>([]);
   const [finished, setFinished] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  
 
   const current = words[currentIndex];
 
@@ -41,16 +41,10 @@ const WordShooterGame = () => {
   useEffect(() => {
     if (!current || finished) return;
     spawnBubbles();
-    // Auto-miss after 6 seconds
-    timerRef.current = setTimeout(() => {
-      handleSelect('__timeout__');
-    }, 6000);
-    return () => clearTimeout(timerRef.current);
   }, [currentIndex, current, finished]);
 
   const handleSelect = async (word: string) => {
     if (!current || finished) return;
-    clearTimeout(timerRef.current);
     const correct = word === current.word;
     if (correct) playCorrect(); else playWrong();
     setFeedback(correct ? 'correct' : 'wrong');
@@ -63,9 +57,9 @@ const WordShooterGame = () => {
       setBubbles([]);
       if (currentIndex + 1 >= words.length) {
         const correctCount = newResults.filter(Boolean).length;
+        const mastery = Math.round((correctCount / words.length) * 100);
         saveSession('word-shooter', correctCount * 10, words.length, correctCount);
-        playFinish();
-        setFinished(true);
+        playFinish(mastery);
       } else {
         setCurrentIndex(i => i + 1);
       }
@@ -126,24 +120,20 @@ const WordShooterGame = () => {
         )}
       </AnimatePresence>
 
-      {/* Bubbles floating up */}
-      <div className="relative h-48 overflow-hidden rounded-2xl bg-muted/30 border border-border">
-        <AnimatePresence>
-          {!feedback && bubbles.map((bubble) => (
-            <motion.button
-              key={bubble.id}
-              initial={{ y: 180, x: `${bubble.x}%`, opacity: 0 }}
-              animate={{ y: -60, opacity: 1 }}
-              transition={{ duration: 5, ease: 'linear' }}
-              exit={{ scale: 1.5, opacity: 0 }}
-              onClick={() => handleSelect(bubble.word)}
-              className="absolute px-4 py-2 rounded-full bg-primary text-primary-foreground font-bold text-sm game-card-shadow cursor-pointer hover:scale-110 transition-transform"
-              style={{ left: `${bubble.x}%` }}
-            >
-              {bubble.word}
-            </motion.button>
-          ))}
-        </AnimatePresence>
+      {/* Word options grid */}
+      <div className="grid grid-cols-2 gap-3 px-2">
+        {!feedback && bubbles.map((bubble) => (
+          <motion.button
+            key={bubble.id}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            onClick={() => handleSelect(bubble.word)}
+            className="px-6 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-base game-card-shadow cursor-pointer hover:scale-105 active:scale-95 transition-transform text-center"
+          >
+            {bubble.word}
+          </motion.button>
+        ))}
       </div>
     </div>
   );

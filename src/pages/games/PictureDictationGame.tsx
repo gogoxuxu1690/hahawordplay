@@ -59,8 +59,9 @@ const PictureDictationGame = () => {
     setTimeout(async () => {
       if (currentIndex + 1 >= wordsWithImages.length || currentIndex + 1 >= words.length) {
         const correctCount = newResults.filter(Boolean).length;
+        const mastery = Math.round((correctCount / newResults.length) * 100);
         await saveSession('picture-dictation', correctCount * 10, newResults.length, correctCount);
-        playFinish();
+        playFinish(mastery);
         setFinished(true);
       } else {
         setCurrentIndex(i => i + 1);
