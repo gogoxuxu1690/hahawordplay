@@ -63,9 +63,9 @@ const WordShooterGame = () => {
       setBubbles([]);
       if (currentIndex + 1 >= words.length) {
         const correctCount = newResults.filter(Boolean).length;
+        const mastery = Math.round((correctCount / words.length) * 100);
         saveSession('word-shooter', correctCount * 10, words.length, correctCount);
-        playFinish();
-        setFinished(true);
+        playFinish(mastery);
       } else {
         setCurrentIndex(i => i + 1);
       }
