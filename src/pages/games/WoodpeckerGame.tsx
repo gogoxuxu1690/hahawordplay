@@ -173,8 +173,9 @@ const WoodpeckerGame = () => {
     setTimeout(() => {
       if (currentIndex + 1 >= words.length) {
         const correctCount = newResults.filter(Boolean).length;
+        const mastery = Math.round((correctCount / words.length) * 100);
         saveSession('woodpecker', correctCount * 10, words.length, correctCount);
-        playFinish();
+        playFinish(mastery);
         setFinished(true);
       } else {
         setCurrentIndex(i => i + 1);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Edit2, Volume2, ChevronDown, ChevronRight, icons } from 'lucide-react';
+import { Plus, Trash2, Edit2, Volume2, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import LucideIconPicker from '@/components/LucideIconPicker';
+import GroupImagePicker from '@/components/GroupImagePicker';
 import WordImagePicker from '@/components/WordImagePicker';
 
 interface Group {
