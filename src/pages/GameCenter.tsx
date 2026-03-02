@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Layers, Shuffle, CheckCircle, PenTool, Puzzle, Brain, Crosshair, Ear, Bird, icons } from 'lucide-react';
+import { Layers, Shuffle, CheckCircle, PenTool, Puzzle, Brain, Crosshair, Ear, Bird } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,9 +14,8 @@ interface Group {
 }
 
 const GroupIcon = ({ group }: { group: Group }) => {
-  if (group.icon_name) {
-    const Icon = icons[group.icon_name as keyof typeof icons];
-    if (Icon && typeof Icon === 'function') return <Icon size={18} />;
+  if (group.icon_name && group.icon_name.startsWith('http')) {
+    return <img src={group.icon_name} alt="" className="w-[18px] h-[18px] rounded object-cover" />;
   }
   return <span>{group.emoji || '📚'}</span>;
 };
