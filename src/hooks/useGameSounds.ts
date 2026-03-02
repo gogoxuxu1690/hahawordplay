@@ -49,14 +49,20 @@ export function useGameSounds() {
     setTimeout(() => createOscillatorSound(ctx, 1320, 0.2, 'sine', 0.2), 80);
   }, [getCtx]);
 
-  const playWrong = useCallback(() => {
+  const playLeuLeu = useCallback(() => {
     if (globalMuted) return;
-    const ctx = getCtx();
-    // Low buzz
-    createOscillatorSound(ctx, 180, 0.3, 'sawtooth', 0.15);
-  }, [getCtx]);
+    const u = new SpeechSynthesisUtterance('Lêu lêu lêu');
+    u.lang = 'vi-VN';
+    u.pitch = 1.5;
+    u.rate = 1.2;
+    speechSynthesis.speak(u);
+  }, []);
 
-  const playFinish = useCallback(() => {
+  const playWrong = useCallback(() => {
+    playLeuLeu();
+  }, [playLeuLeu]);
+
+  const playApplause = useCallback(() => {
     if (globalMuted) return;
     const ctx = getCtx();
     // Applause-like: burst of noise + ascending chime
@@ -86,5 +92,13 @@ export function useGameSounds() {
     });
   }, [getCtx]);
 
-  return { playCorrect, playWrong, playFinish };
+  const playFinish = useCallback((masteryPercent?: number) => {
+    if (masteryPercent !== undefined && masteryPercent < 80) {
+      playLeuLeu();
+    } else {
+      playApplause();
+    }
+  }, [playLeuLeu, playApplause]);
+
+  return { playCorrect, playWrong, playFinish, playLeuLeu };
 }
