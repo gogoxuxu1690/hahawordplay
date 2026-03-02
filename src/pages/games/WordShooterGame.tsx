@@ -45,7 +45,6 @@ const WordShooterGame = () => {
 
   const handleSelect = async (word: string) => {
     if (!current || finished) return;
-    clearTimeout(timerRef.current);
     const correct = word === current.word;
     if (correct) playCorrect(); else playWrong();
     setFeedback(correct ? 'correct' : 'wrong');
