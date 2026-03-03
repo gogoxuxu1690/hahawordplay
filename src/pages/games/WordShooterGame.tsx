@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,15 +6,39 @@ import { useGameWords, useRecordResult } from '@/hooks/useGameWords';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { GameResults } from '@/components/GameResults';
 
-const BUBBLE_TRAVEL_TIME = 8; // seconds
+const BUBBLE_TRAVEL_TIME = 8; // seconds visible
+const SPEED_MULTIPLIER = 1.3; // 1.3x faster
+const ANIMATION_DURATION = BUBBLE_TRAVEL_TIME / SPEED_MULTIPLIER; // ~6.15s animation for 8s visibility window
 const BUBBLE_COUNT = 4;
+const STAGGER_DELAY = 0.5; // seconds between each bubble entry
+const ARENA_HEIGHT = 420;
 
 interface FloatingBubble {
   id: string;
   word: string;
-  x: number; // percent 0-100
+  x: number; // percent 5-95
+  delay: number; // stagger delay in seconds
   startedAt: number;
 }
+
+// Generate well-spaced random X positions with collision avoidance
+const generateSpacedPositions = (count: number): number[] => {
+  const minGap = 22; // minimum % gap between bubbles
+  const positions: number[] = [];
+  for (let i = 0; i < count; i++) {
+    let attempts = 0;
+    let pos: number;
+    do {
+      pos = 8 + Math.random() * 64; // keep within 8%-72% so bubble + width stays in view
+      attempts++;
+    } while (
+      attempts < 50 &&
+      positions.some(p => Math.abs(p - pos) < minGap)
+    );
+    positions.push(pos);
+  }
+  return positions;
+};
 
 const WordShooterGame = () => {
   const { words, loading } = useGameWords();
@@ -25,11 +49,12 @@ const WordShooterGame = () => {
   const [results, setResults] = useState<boolean[]>([]);
   const [finished, setFinished] = useState(false);
   const [locked, setLocked] = useState(false);
-  const [arrowTarget, setArrowTarget] = useState<{ x: number; y: number } | null>(null);
+  const [arrowAnim, setArrowAnim] = useState<{ fromX: number; fromY: number; toX: number; toY: number } | null>(null);
   const [hitBubbleId, setHitBubbleId] = useState<string | null>(null);
   const [hitCorrect, setHitCorrect] = useState<boolean | null>(null);
   const [particles, setParticles] = useState<{ id: number; x: number; y: number }[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const bubbleRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   const current = words[currentIndex];
 
@@ -45,19 +70,20 @@ const WordShooterGame = () => {
     speechSynthesis.speak(u);
   }, [current]);
 
-  // Spawn bubbles for current word
+  // Spawn bubbles with collision avoidance and staggered entry
   const spawnBubbles = useCallback(() => {
     if (!current || words.length < 2) return;
     const others = words.filter(w => w.id !== current.id);
     const distractors = [...others].sort(() => Math.random() - 0.5).slice(0, BUBBLE_COUNT - 1);
     const all = [...distractors.map(w => w.word), current.word].sort(() => Math.random() - 0.5);
-    const spacing = 80 / (all.length + 1);
+    const positions = generateSpacedPositions(all.length);
     const now = Date.now();
     setBubbles(all.map((word, i) => ({
       id: `${now}-${i}`,
       word,
-      x: 10 + spacing * (i + 1) - spacing / 2 + (Math.random() * 6 - 3),
-      startedAt: now,
+      x: positions[i],
+      delay: i * STAGGER_DELAY,
+      startedAt: now + i * STAGGER_DELAY * 1000,
     })));
   }, [current, words]);
 
@@ -67,20 +93,21 @@ const WordShooterGame = () => {
     setLocked(false);
     setHitBubbleId(null);
     setHitCorrect(null);
-    setArrowTarget(null);
+    setArrowAnim(null);
     setParticles([]);
+    bubbleRefs.current.clear();
     spawnBubbles();
     const t = setTimeout(speak, 400);
     return () => clearTimeout(t);
   }, [currentIndex, current, finished]);
 
-  // Handle timeout — if bubbles reach top without selection
+  // Handle timeout
   useEffect(() => {
     if (locked || finished || !current) return;
+    const maxDelay = (BUBBLE_COUNT - 1) * STAGGER_DELAY;
     const timer = setTimeout(() => {
-      // auto-miss
       handleSelect(null);
-    }, (BUBBLE_TRAVEL_TIME + 0.5) * 1000);
+    }, (ANIMATION_DURATION + maxDelay + 0.5) * 1000);
     return () => clearTimeout(timer);
   }, [currentIndex, locked, finished, current]);
 
@@ -89,33 +116,36 @@ const WordShooterGame = () => {
     setLocked(true);
     const correct = word === current.word;
 
-    // Find the bubble element position for arrow
     if (word) {
       const bubble = bubbles.find(b => b.word === word);
-      if (bubble && containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const bx = (bubble.x / 100) * rect.width;
-        // Estimate current Y based on elapsed time
-        const elapsed = (Date.now() - bubble.startedAt) / 1000;
-        const progress = Math.min(elapsed / BUBBLE_TRAVEL_TIME, 1);
-        const by = rect.height * (1 - progress);
-        setArrowTarget({ x: bx, y: by });
+      const bubbleEl = bubble ? bubbleRefs.current.get(bubble.id) : null;
+      const container = containerRef.current;
 
-        // Set hit state after arrow "flies"
+      if (bubble && bubbleEl && container) {
+        const containerRect = container.getBoundingClientRect();
+        const bubbleRect = bubbleEl.getBoundingClientRect();
+
+        // Calculate bubble center relative to container
+        const bx = bubbleRect.left - containerRect.left + bubbleRect.width / 2;
+        const by = bubbleRect.top - containerRect.top + bubbleRect.height / 2;
+
+        // Arrow from bottom center to bubble
+        const fromX = containerRect.width / 2;
+        const fromY = containerRect.height;
+        setArrowAnim({ fromX, fromY, toX: bx, toY: by });
+
         setTimeout(() => {
           setHitBubbleId(bubble.id);
           setHitCorrect(correct);
           if (correct) {
             playCorrect();
-            // Spawn particles at bubble position
-            setParticles(Array.from({ length: 8 }, (_, i) => ({ id: i, x: bx, y: by })));
+            setParticles(Array.from({ length: 10 }, (_, i) => ({ id: i, x: bx, y: by })));
           } else {
             playWrong();
           }
-        }, 300);
+        }, 280);
       }
     } else {
-      // Timeout miss
       playWrong();
     }
 
@@ -124,7 +154,7 @@ const WordShooterGame = () => {
     setResults(newResults);
 
     setTimeout(() => {
-      setArrowTarget(null);
+      setArrowAnim(null);
       setParticles([]);
       setBubbles([]);
       if (currentIndex + 1 >= words.length) {
@@ -147,8 +177,9 @@ const WordShooterGame = () => {
     setBubbles([]);
     setHitBubbleId(null);
     setHitCorrect(null);
-    setArrowTarget(null);
+    setArrowAnim(null);
     setParticles([]);
+    bubbleRefs.current.clear();
   };
 
   if (loading) return <div className="text-center py-20 text-muted-foreground">Loading...</div>;
@@ -186,7 +217,7 @@ const WordShooterGame = () => {
       <div
         ref={containerRef}
         className="relative w-full rounded-2xl overflow-hidden bg-muted/30 border border-border"
-        style={{ height: 360 }}
+        style={{ height: ARENA_HEIGHT }}
       >
         {/* Floating bubbles */}
         <AnimatePresence>
@@ -195,34 +226,41 @@ const WordShooterGame = () => {
             const exploded = isHit && hitCorrect === true;
             const shaking = isHit && hitCorrect === false;
 
-            if (exploded) return null; // removed on correct
+            if (exploded) return null;
 
             return (
               <motion.button
                 key={bubble.id}
-                initial={{ y: '100%', opacity: 0 }}
+                ref={(el) => {
+                  if (el) bubbleRefs.current.set(bubble.id, el);
+                }}
+                initial={{ bottom: -60, opacity: 0 }}
                 animate={shaking ? {
-                  y: '-100%',
+                  bottom: ARENA_HEIGHT + 60,
                   opacity: 1,
-                  x: [0, -8, 8, -8, 8, 0],
+                  x: [0, -10, 10, -10, 10, 0],
                   transition: {
-                    y: { duration: BUBBLE_TRAVEL_TIME, ease: 'linear' },
+                    bottom: { duration: ANIMATION_DURATION, ease: 'linear', delay: bubble.delay },
+                    opacity: { duration: 0.3, delay: bubble.delay },
                     x: { duration: 0.4, ease: 'easeInOut' },
                   }
                 } : {
-                  y: '-100%',
+                  bottom: ARENA_HEIGHT + 60,
                   opacity: 1,
-                  transition: { duration: BUBBLE_TRAVEL_TIME, ease: 'linear' }
+                  transition: {
+                    bottom: { duration: ANIMATION_DURATION, ease: 'linear', delay: bubble.delay },
+                    opacity: { duration: 0.3, delay: bubble.delay },
+                  }
                 }}
                 exit={{ opacity: 0, scale: 0.3, transition: { duration: 0.2 } }}
                 onClick={() => !locked && handleSelect(bubble.word)}
                 disabled={locked}
-                className="absolute bottom-0 px-5 py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-base cursor-pointer hover:brightness-110 active:scale-95 transition-all whitespace-nowrap shadow-lg"
+                className="absolute px-6 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-lg cursor-pointer hover:brightness-110 active:scale-95 transition-colors whitespace-nowrap border-2 border-primary-foreground/20"
                 style={{
                   left: `${bubble.x}%`,
-                  transform: 'translateX(-50%)',
-                  minWidth: 120,
+                  minWidth: 150,
                   textAlign: 'center',
+                  boxShadow: '0 4px 16px hsl(var(--primary) / 0.4)',
                 }}
               >
                 {bubble.word}
@@ -231,16 +269,20 @@ const WordShooterGame = () => {
           })}
         </AnimatePresence>
 
-        {/* Arrow animation */}
+        {/* Arrow animation — pixel-precise from bottom-center to target */}
         <AnimatePresence>
-          {arrowTarget && (
+          {arrowAnim && (
             <motion.div
-              initial={{ bottom: 0, left: '50%', opacity: 1 }}
-              animate={{ bottom: `calc(100% - ${arrowTarget.y}px)`, left: arrowTarget.x, opacity: 1 }}
+              initial={{ left: arrowAnim.fromX, top: arrowAnim.fromY, opacity: 1 }}
+              animate={{ left: arrowAnim.toX, top: arrowAnim.toY, opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.28, ease: 'easeOut' }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
               className="absolute text-2xl pointer-events-none z-20"
-              style={{ transform: 'translate(-50%, 50%)' }}
+              style={{
+                transform: 'translate(-50%, -50%)',
+                // Rotate arrow toward target
+                rotate: `${Math.atan2(arrowAnim.toY - arrowAnim.fromY, arrowAnim.toX - arrowAnim.fromX) * (180 / Math.PI) + 90}deg`,
+              }}
             >
               🏹
             </motion.div>
@@ -252,16 +294,17 @@ const WordShooterGame = () => {
           {particles.map(p => (
             <motion.div
               key={p.id}
-              initial={{ x: p.x, y: p.y, opacity: 1, scale: 1 }}
+              initial={{ left: p.x, top: p.y, opacity: 1, scale: 1 }}
               animate={{
-                x: p.x + (Math.random() - 0.5) * 120,
-                y: p.y + (Math.random() - 0.5) * 120,
+                left: p.x + (Math.random() - 0.5) * 140,
+                top: p.y + (Math.random() - 0.5) * 140,
                 opacity: 0,
-                scale: 0.3,
+                scale: 0.2,
               }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
               className="absolute w-3 h-3 rounded-full bg-primary pointer-events-none z-10"
+              style={{ transform: 'translate(-50%, -50%)' }}
             />
           ))}
         </AnimatePresence>
@@ -273,7 +316,7 @@ const WordShooterGame = () => {
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className={`absolute inset-0 flex items-center justify-center z-30 pointer-events-none`}
+              className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none"
             >
               <span className={`text-5xl font-display font-bold ${hitCorrect ? 'text-secondary' : 'text-destructive'}`}>
                 {hitCorrect ? '💥 Hit!' : '✗ Miss!'}
