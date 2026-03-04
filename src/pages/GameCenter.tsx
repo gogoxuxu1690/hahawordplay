@@ -30,6 +30,7 @@ const games = [
   { id: 'word-shooter', name: 'Word Shooter', icon: Crosshair, color: 'bg-coral', desc: 'Shoot the right word' },
   { id: 'picture-dictation', name: 'Picture Dictation', icon: Ear, color: 'bg-sky', desc: 'Listen & pick the image' },
   { id: 'woodpecker', name: 'Woodpecker', icon: Bird, color: 'bg-mint', desc: 'Peck the right caterpillar' },
+  { id: 'voice-master', name: 'Voice Master', icon: Ear, color: 'bg-lavender', desc: 'Speak & master words' },
 ];
 
 const GameCenter = () => {
