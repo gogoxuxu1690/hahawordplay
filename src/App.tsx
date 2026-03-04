@@ -19,6 +19,7 @@ import WordShooterGame from "./pages/games/WordShooterGame";
 import PictureDictationGame from "./pages/games/PictureDictationGame";
 import WoodpeckerGame from "./pages/games/WoodpeckerGame";
 import VoiceMasterGame from "./pages/games/VoiceMasterGame";
+import LuckyVoiceGame from "./pages/games/LuckyVoiceGame";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const AppRoutes = () => (
     <Route path="/play/picture-dictation" element={<ProtectedRoute><PictureDictationGame /></ProtectedRoute>} />
     <Route path="/play/woodpecker" element={<ProtectedRoute><WoodpeckerGame /></ProtectedRoute>} />
     <Route path="/play/voice-master" element={<ProtectedRoute><VoiceMasterGame /></ProtectedRoute>} />
+    <Route path="/play/lucky-voice" element={<ProtectedRoute><LuckyVoiceGame /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
