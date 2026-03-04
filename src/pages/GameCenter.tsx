@@ -32,7 +32,6 @@ const games = [
   { id: 'woodpecker', name: 'Woodpecker', icon: Bird, color: 'bg-mint', desc: 'Peck the right caterpillar' },
   { id: 'voice-master', name: 'Voice Master', icon: Mic, color: 'bg-lavender', desc: 'Speak & master words' },
 ];
-];
 
 const GameCenter = () => {
   const navigate = useNavigate();
