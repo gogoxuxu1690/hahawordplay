@@ -24,6 +24,8 @@ const gameLabels: Record<string, string> = {
   'picture-dictation': '🎧 Picture Dictation',
   'woodpecker': '🐦 Woodpecker',
   'voice-master': '🎤 Voice Master',
+  'lucky-voice': '🎰 Lucky Voice',
+  'mole-whacker': '🔨 Mole Whacker',
 };
 
 const Progress = () => {
