@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Layers, Shuffle, CheckCircle, PenTool, Puzzle, Brain, Crosshair, Ear, Bird, Mic, Dices } from 'lucide-react';
+import { Layers, Shuffle, CheckCircle, PenTool, Puzzle, Brain, Crosshair, Ear, Bird, Mic, Dices, Hammer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,6 +32,7 @@ const games = [
   { id: 'woodpecker', name: 'Woodpecker', icon: Bird, color: 'bg-mint', desc: 'Peck the right caterpillar' },
   { id: 'voice-master', name: 'Voice Master', icon: Mic, color: 'bg-lavender', desc: 'Speak & master words' },
   { id: 'lucky-voice', name: 'Lucky Voice', icon: Dices, color: 'bg-sunny', desc: 'Spin & speak to win' },
+  { id: 'mole-whacker', name: 'Mole Whacker', icon: Hammer, color: 'bg-rose', desc: 'Listen & whack the mole' },
 ];
 
 const GameCenter = () => {
