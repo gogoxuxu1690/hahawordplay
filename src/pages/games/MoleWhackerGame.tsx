@@ -9,8 +9,8 @@ import { GameResults } from '@/components/GameResults';
 import moleImg from '@/assets/mole.png';
 
 const ROUNDS = 10;
-const MOLE_VISIBLE_MS = 4000;
-const MOLE_EMERGE_DELAY = 600;
+const BASE_VISIBLE_MS = 3000;
+const SPEED_INCREASE = 150; // ms faster per correct answer
 
 function speakWord(word: string) {
   speechSynthesis.cancel();
@@ -29,6 +29,26 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+function randomDelay(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min)) + min;
+}
+
+/* ── Whack sound ── */
+function playWhackSound(ctx: AudioContext) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(120, ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.08);
+  gain.gain.setValueAtTime(0.5, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + 0.12);
+}
+
+/* ── StarBurst ── */
 const StarBurst = ({ x, y }: { x: number; y: number }) => {
   const stars = Array.from({ length: 8 }, (_, i) => {
     const angle = (i / 8) * Math.PI * 2;
@@ -42,14 +62,54 @@ const StarBurst = ({ x, y }: { x: number; y: number }) => {
           initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
           animate={{ x: s.dx, y: s.dy, opacity: 0, scale: 0 }}
           transition={{ duration: 0.6 }}
-          className="absolute text-yellow-400 text-lg"
-          style={{ left: -8, top: -8 }}
+          className="absolute text-lg"
+          style={{ left: -8, top: -8, color: 'hsl(var(--warning))' }}
         >
           ⭐
         </motion.div>
       ))}
     </div>
   );
+};
+
+/* ── Orbiting stars (dizziness) ── */
+const DizzyStars = () => (
+  <motion.div
+    className="absolute -top-4 left-1/2 -translate-x-1/2 w-16 h-16 pointer-events-none"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+  >
+    {[0, 1, 2, 3].map(i => (
+      <motion.span
+        key={i}
+        className="absolute text-sm"
+        style={{ left: '50%', top: '50%' }}
+        animate={{
+          x: [
+            Math.cos((i / 4) * Math.PI * 2) * 20,
+            Math.cos((i / 4) * Math.PI * 2 + Math.PI) * 20,
+            Math.cos((i / 4) * Math.PI * 2 + Math.PI * 2) * 20,
+          ],
+          y: [
+            Math.sin((i / 4) * Math.PI * 2) * 12,
+            Math.sin((i / 4) * Math.PI * 2 + Math.PI) * 12,
+            Math.sin((i / 4) * Math.PI * 2 + Math.PI * 2) * 12,
+          ],
+        }}
+        transition={{ duration: 0.8, repeat: 1 }}
+      >
+        ⭐
+      </motion.span>
+    ))}
+  </motion.div>
+);
+
+type MoleState = {
+  word: GameWord;
+  holeIndex: number;
+  visible: boolean;
+  timerId?: ReturnType<typeof setTimeout>;
 };
 
 const MoleWhackerGame = () => {
@@ -62,106 +122,168 @@ const MoleWhackerGame = () => {
   const [score, setScore] = useState(0);
   const [correct, setCorrect] = useState(0);
   const [phase, setPhase] = useState<'playing' | 'finished'>('playing');
-  const [moles, setMoles] = useState<{ word: GameWord; visible: boolean; holeIndex: number }[]>([]);
+  const [moles, setMoles] = useState<MoleState[]>([]);
   const [targetWord, setTargetWord] = useState<GameWord | null>(null);
-  const [hitIndex, setHitIndex] = useState<number | null>(null);
-  const [wrongIndex, setWrongIndex] = useState<number | null>(null);
+  const [whackingHole, setWhackingHole] = useState<number | null>(null);
+  const [whackHit, setWhackHit] = useState(0); // 0, 1, 2
+  const [dizzyHole, setDizzyHole] = useState<number | null>(null);
+  const [wrongHole, setWrongHole] = useState<number | null>(null);
   const [starPos, setStarPos] = useState<{ x: number; y: number } | null>(null);
   const [canHit, setCanHit] = useState(true);
-  const [hammerActive, setHammerActive] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const gridRef = useRef<HTMLDivElement>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const emergenceTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
+  const getAudioCtx = useCallback(() => {
+    if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
+    if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
+    return audioCtxRef.current;
+  }, []);
+
+  const visibleDuration = useCallback(() => {
+    return Math.max(1500, BASE_VISIBLE_MS - correct * SPEED_INCREASE);
+  }, [correct]);
+
+  const clearAllTimers = useCallback(() => {
+    emergenceTimers.current.forEach(t => clearTimeout(t));
+    emergenceTimers.current = [];
+  }, []);
+
+  /* ── Dynamic emergence: moles pop up/down randomly ── */
   const setupRound = useCallback((roundIdx: number) => {
     if (roundIdx >= words.length || roundIdx >= ROUNDS) {
       setPhase('finished');
       return;
     }
+    clearAllTimers();
 
     const target = words[roundIdx];
     setTargetWord(target);
-    setHitIndex(null);
-    setWrongIndex(null);
+    setWhackingHole(null);
+    setWhackHit(0);
+    setDizzyHole(null);
+    setWrongHole(null);
     setStarPos(null);
     setCanHit(true);
 
-    // Pick 3 distractors
     const others = words.filter(w => w.id !== target.id);
     const distractors = shuffle(others).slice(0, 3);
     const options = shuffle([target, ...distractors]);
-
-    // Assign to 4 holes (2x2)
     const holeAssignments = shuffle([0, 1, 2, 3]);
-    const newMoles = options.map((w, i) => ({
-      word: w,
-      visible: false,
-      holeIndex: holeAssignments[i],
-    }));
 
-    setMoles(newMoles);
+    const initialMoles: MoleState[] = options.map((w, i) => ({
+      word: w,
+      holeIndex: holeAssignments[i],
+      visible: false,
+    }));
+    setMoles(initialMoles);
 
     // Speak the word
     setTimeout(() => speakWord(target.word), 300);
 
-    // Emerge moles staggered
-    newMoles.forEach((_, i) => {
-      setTimeout(() => {
+    // Dynamic emergence: stagger moles with random delays
+    const dur = Math.max(1500, BASE_VISIBLE_MS - roundIdx * (SPEED_INCREASE / 2));
+    initialMoles.forEach((mole, i) => {
+      const emergeDelay = randomDelay(400, 1200) + i * 200;
+      const t = setTimeout(() => {
+        // Show mole
         setMoles(prev => prev.map((m, idx) => idx === i ? { ...m, visible: true } : m));
-      }, MOLE_EMERGE_DELAY + i * 200);
+        // Schedule retreat
+        const retreatTimer = setTimeout(() => {
+          setMoles(prev => prev.map((m, idx) => idx === i ? { ...m, visible: false } : m));
+          // Re-emerge after a pause (if round is still active)
+          const reEmerge = setTimeout(() => {
+            setMoles(prev => prev.map((m, idx) => idx === i ? { ...m, visible: true } : m));
+            // Final retreat
+            const finalRetreat = setTimeout(() => {
+              setMoles(prev => prev.map((m, idx) => idx === i ? { ...m, visible: false } : m));
+            }, dur);
+            emergenceTimers.current.push(finalRetreat);
+          }, randomDelay(600, 1200));
+          emergenceTimers.current.push(reEmerge);
+        }, dur);
+        emergenceTimers.current.push(retreatTimer);
+      }, emergeDelay);
+      emergenceTimers.current.push(t);
     });
 
-    // Auto-retreat after visibility window
-    timerRef.current = setTimeout(() => {
+    // Failsafe: auto-advance if no answer after full cycle
+    const failsafe = setTimeout(() => {
       setMoles(prev => prev.map(m => ({ ...m, visible: false })));
-      // If player didn't answer, count as wrong
       setTimeout(() => {
         setCanHit(false);
         recordResult(target.id, false);
         setRound(r => r + 1);
       }, 500);
-    }, MOLE_VISIBLE_MS + MOLE_EMERGE_DELAY + 800);
-  }, [words, recordResult]);
+    }, dur * 2 + 2500);
+    emergenceTimers.current.push(failsafe);
+  }, [words, recordResult, clearAllTimers]);
 
   useEffect(() => {
     if (!loading && words.length > 0 && phase === 'playing') {
       setupRound(round);
     }
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    return () => clearAllTimers();
   }, [round, loading, words.length, phase]);
 
+  /* ── Double-whack sequence ── */
   const handleWhack = (moleIdx: number, e: React.MouseEvent) => {
     if (!canHit || !targetWord) return;
     setCanHit(false);
-    if (timerRef.current) clearTimeout(timerRef.current);
-
-    setHammerActive(true);
-    setTimeout(() => setHammerActive(false), 200);
+    clearAllTimers();
 
     const mole = moles[moleIdx];
+    const holeIdx = mole.holeIndex;
     const isCorrect = mole.word.id === targetWord.id;
 
-    if (isCorrect) {
-      setHitIndex(moleIdx);
-      // Star burst at click position relative to grid
-      const rect = gridRef.current?.getBoundingClientRect();
-      if (rect) {
-        setStarPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-      }
-      playCorrect();
-      setScore(s => s + 10);
-      setCorrect(c => c + 1);
-      recordResult(targetWord.id, true);
-    } else {
-      setWrongIndex(moleIdx);
-      playWrong();
-      recordResult(targetWord.id, false);
-    }
+    // Freeze mole in place
+    setWhackingHole(holeIdx);
 
-    // Hide moles and advance
+    const ctx = getAudioCtx();
+
+    // Hit 1
+    setWhackHit(1);
+    playWhackSound(ctx);
+
     setTimeout(() => {
-      setMoles(prev => prev.map(m => ({ ...m, visible: false })));
-      setTimeout(() => setRound(r => r + 1), 400);
-    }, 800);
+      // Hit 2
+      setWhackHit(2);
+      playWhackSound(ctx);
+
+      setTimeout(() => {
+        // After double whack completes
+        setWhackingHole(null);
+        setWhackHit(0);
+
+        if (isCorrect) {
+          setDizzyHole(holeIdx);
+          const rect = gridRef.current?.getBoundingClientRect();
+          if (rect) {
+            setStarPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+          }
+          playCorrect();
+          setScore(s => s + 10);
+          setCorrect(c => c + 1);
+          recordResult(targetWord.id, true);
+
+          setTimeout(() => {
+            setDizzyHole(null);
+            setMoles(prev => prev.map(m => ({ ...m, visible: false })));
+            setTimeout(() => setRound(r => r + 1), 400);
+          }, 1200);
+        } else {
+          setWrongHole(holeIdx);
+          playWrong();
+          recordResult(targetWord.id, false);
+
+          setTimeout(() => {
+            setWrongHole(null);
+            setMoles(prev => prev.map(m => ({ ...m, visible: false })));
+            setTimeout(() => setRound(r => r + 1), 400);
+          }, 800);
+        }
+      }, 180);
+    }, 180);
   };
 
   useEffect(() => {
@@ -237,8 +359,9 @@ const MoleWhackerGame = () => {
 
         {[0, 1, 2, 3].map(holeIdx => {
           const mole = moles.find(m => m.holeIndex === holeIdx);
-          const isHit = mole && hitIndex !== null && moles[hitIndex]?.holeIndex === holeIdx;
-          const isWrong = mole && wrongIndex !== null && moles[wrongIndex]?.holeIndex === holeIdx;
+          const isBeingWhacked = whackingHole === holeIdx;
+          const isDizzy = dizzyHole === holeIdx;
+          const isWrong = wrongHole === holeIdx;
 
           return (
             <div key={holeIdx} className="flex flex-col items-center">
@@ -256,23 +379,36 @@ const MoleWhackerGame = () => {
                       key={`mole-${holeIdx}`}
                       initial={{ y: 80 }}
                       animate={{
-                        y: isHit ? [0, -5, 5, -3, 3, 0] : isWrong ? [0, -8, 8, -4, 4, 0] : 0,
+                        y: isBeingWhacked
+                          ? (whackHit === 1 ? [0, 6, 0] : whackHit === 2 ? [0, 8, 0] : 0)
+                          : isDizzy
+                          ? [0, -3, 3, -2, 2, 0]
+                          : isWrong
+                          ? [0, -8, 8, -4, 4, 0]
+                          : 0,
                       }}
                       exit={{ y: 80 }}
                       transition={{
-                        y: isHit || isWrong
-                          ? { duration: 0.4, times: [0, 0.2, 0.4, 0.6, 0.8, 1] }
+                        y: isBeingWhacked || isDizzy || isWrong
+                          ? { duration: 0.15, times: isBeingWhacked ? [0, 0.5, 1] : [0, 0.2, 0.4, 0.6, 0.8, 1] }
                           : { type: 'spring', stiffness: 300, damping: 20 },
                       }}
                       className="absolute bottom-0 flex flex-col items-center cursor-pointer select-none"
                     >
-                      {/* Word label */}
+                      {/* Dizzy stars orbiting */}
+                      <AnimatePresence>
+                        {isDizzy && <DizzyStars />}
+                      </AnimatePresence>
+
+                      {/* Word label attached to mole */}
                       <motion.div
                         className={`px-3 py-1 rounded-xl text-sm font-bold mb-1 text-center whitespace-nowrap ${
-                          isHit
+                          isDizzy
                             ? 'bg-green-500 text-white'
                             : isWrong
                             ? 'bg-red-500 text-white'
+                            : isBeingWhacked
+                            ? 'bg-amber-400 text-foreground border border-border'
                             : 'bg-card text-foreground border border-border'
                         }`}
                         animate={isWrong ? { x: [0, -6, 6, -4, 4, 0] } : {}}
@@ -280,17 +416,20 @@ const MoleWhackerGame = () => {
                       >
                         {mole.word.word}
                       </motion.div>
+
                       {/* Mole image */}
                       <motion.img
                         src={moleImg}
                         alt="Mole"
                         className="w-20 h-20 sm:w-24 sm:h-24 object-contain drop-shadow-lg"
                         animate={
-                          isHit
-                            ? { rotate: [0, -15, 15, -10, 10, 0], scale: [1, 0.9, 1.1, 0.95, 1] }
+                          isBeingWhacked
+                            ? { rotate: whackHit === 1 ? [0, -20, 0] : [0, 20, 0], scale: [1, 0.85, 1] }
+                            : isDizzy
+                            ? { rotate: [0, -10, 10, -5, 5, 0] }
                             : {}
                         }
-                        transition={{ duration: 0.5 }}
+                        transition={{ duration: 0.15 }}
                       />
                     </motion.div>
                   )}
@@ -308,19 +447,6 @@ const MoleWhackerGame = () => {
           );
         })}
       </div>
-
-      {/* Hammer active flash */}
-      <AnimatePresence>
-        {hammerActive && (
-          <motion.div
-            initial={{ opacity: 0.6 }}
-            animate={{ opacity: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-white/10 pointer-events-none z-50"
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 };
