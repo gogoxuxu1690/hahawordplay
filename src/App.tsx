@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/AppLayout";
 import Auth from "./pages/Auth";
 import ManageWords from "./pages/ManageWords";
+import ManageGrammar from "./pages/ManageGrammar";
 import GameCenter from "./pages/GameCenter";
 import Progress from "./pages/Progress";
 import FlashcardsGame from "./pages/games/FlashcardsGame";
@@ -21,6 +22,10 @@ import WoodpeckerGame from "./pages/games/WoodpeckerGame";
 import VoiceMasterGame from "./pages/games/VoiceMasterGame";
 import LuckyVoiceGame from "./pages/games/LuckyVoiceGame";
 import MoleWhackerGame from "./pages/games/MoleWhackerGame";
+import GrammarMatchingGame from "./pages/games/GrammarMatchingGame";
+import GrammarDictationGame from "./pages/games/GrammarDictationGame";
+import QuizMasterGame from "./pages/games/QuizMasterGame";
+import SentenceScrambleGame from "./pages/games/SentenceScrambleGame";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
