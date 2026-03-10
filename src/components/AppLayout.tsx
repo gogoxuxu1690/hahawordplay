@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { getGlobalMuted, setGlobalMuted, subscribeGlobalMuted } from '@/hooks/useGameSounds';
 
 const navItems = [
-  { to: '/', label: 'Manage Words', icon: BookOpen },
-  { to: '/games', label: 'Play Games', icon: Gamepad2 },
+  { to: '/', label: 'Words', icon: BookOpen },
+  { to: '/grammar', label: 'Grammar', icon: BookType },
+  { to: '/games', label: 'Play', icon: Gamepad2 },
   { to: '/progress', label: 'Progress', icon: BarChart3 },
 ];
 

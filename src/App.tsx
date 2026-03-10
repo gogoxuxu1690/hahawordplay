@@ -41,6 +41,7 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<Auth />} />
     <Route path="/" element={<ProtectedRoute><ManageWords /></ProtectedRoute>} />
+    <Route path="/grammar" element={<ProtectedRoute><ManageGrammar /></ProtectedRoute>} />
     <Route path="/games" element={<ProtectedRoute><GameCenter /></ProtectedRoute>} />
     <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
     <Route path="/play/flashcards" element={<ProtectedRoute><FlashcardsGame /></ProtectedRoute>} />
@@ -55,6 +56,10 @@ const AppRoutes = () => (
     <Route path="/play/voice-master" element={<ProtectedRoute><VoiceMasterGame /></ProtectedRoute>} />
     <Route path="/play/lucky-voice" element={<ProtectedRoute><LuckyVoiceGame /></ProtectedRoute>} />
     <Route path="/play/mole-whacker" element={<ProtectedRoute><MoleWhackerGame /></ProtectedRoute>} />
+    <Route path="/play/grammar-matching" element={<ProtectedRoute><GrammarMatchingGame /></ProtectedRoute>} />
+    <Route path="/play/grammar-dictation" element={<ProtectedRoute><GrammarDictationGame /></ProtectedRoute>} />
+    <Route path="/play/quiz-master" element={<ProtectedRoute><QuizMasterGame /></ProtectedRoute>} />
+    <Route path="/play/sentence-scramble" element={<ProtectedRoute><SentenceScrambleGame /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
