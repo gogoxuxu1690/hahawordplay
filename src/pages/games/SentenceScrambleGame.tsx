@@ -104,15 +104,16 @@ const SentenceScrambleGame = () => {
     }
   };
 
-  const handleFinish = async () => {
+  const handleFinish = useCallback(async () => {
     await saveSession('sentence-scramble', score, items.length, correct);
-    navigate('/games');
-  };
+  }, [saveSession, score, items.length, correct]);
+
+  useEffect(() => { if (finished) handleFinish(); }, [finished, handleFinish]);
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
   if (items.length < 1) return <div className="text-center py-20"><p className="text-muted-foreground">Need at least 1 pair.</p><Button onClick={() => navigate('/games')} className="mt-4 rounded-xl">Back</Button></div>;
 
-  if (finished) return <GameResults score={score} total={items.length} correct={correct} onFinish={handleFinish} />;
+  if (finished) return <GameResults score={score} total={items.length} correct={correct} gameType="sentence-scramble" onPlayAgain={() => window.location.reload()} />;
 
   return (
     <div>

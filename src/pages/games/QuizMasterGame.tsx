@@ -80,15 +80,16 @@ const QuizMasterGame = () => {
     }, 1200);
   };
 
-  const handleFinish = async () => {
+  const handleFinish = useCallback(async () => {
     await saveSession('quiz-master', score, rounds.length, correct);
-    navigate('/games');
-  };
+  }, [saveSession, score, rounds.length, correct]);
+
+  useEffect(() => { if (finished) handleFinish(); }, [finished, handleFinish]);
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
   if (pairs.length < 2) return <div className="text-center py-20"><p className="text-muted-foreground">Need at least 2 pairs.</p><Button onClick={() => navigate('/games')} className="mt-4 rounded-xl">Back</Button></div>;
 
-  if (finished) return <GameResults score={score} total={rounds.length} correct={correct} onFinish={handleFinish} />;
+  if (finished) return <GameResults score={score} total={rounds.length} correct={correct} gameType="quiz-master" onPlayAgain={() => window.location.reload()} />;
 
   const current = rounds[roundIdx];
   if (!current) return null;

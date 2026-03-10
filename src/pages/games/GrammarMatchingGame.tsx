@@ -47,15 +47,16 @@ const GrammarMatchingGame = () => {
     }
   }, [selectedQuestion, matched, pairs.length, playCorrect, playWrong]);
 
-  const handleFinish = async () => {
+  const handleFinish = useCallback(async () => {
     await saveSession('grammar-matching', score, pairs.length, pairs.length - mistakes);
-    navigate('/games');
-  };
+  }, [saveSession, score, pairs.length, mistakes]);
+
+  useEffect(() => { if (finished) handleFinish(); }, [finished, handleFinish]);
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
   if (pairs.length < 2) return <div className="text-center py-20"><p className="text-muted-foreground">Need at least 2 pairs.</p><Button onClick={() => navigate('/games')} className="mt-4 rounded-xl">Back</Button></div>;
 
-  if (finished) return <GameResults score={score} total={pairs.length} correct={pairs.length - mistakes} onFinish={handleFinish} />;
+  if (finished) return <GameResults score={score} total={pairs.length} correct={pairs.length - mistakes} gameType="grammar-matching" onPlayAgain={() => window.location.reload()} />;
 
   return (
     <div>
