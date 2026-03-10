@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Layers, Shuffle, CheckCircle, PenTool, Puzzle, Brain, Crosshair, Ear, Bird, Mic, Dices, Hammer } from 'lucide-react';
+import { Layers, Shuffle, CheckCircle, PenTool, Puzzle, Brain, Crosshair, Ear, Bird, Mic, Dices, Hammer, BookType, Headphones, HelpCircle, ArrowRightLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Group {
@@ -20,7 +19,7 @@ const GroupIcon = ({ group }: { group: Group }) => {
   return <span>{group.emoji || '📚'}</span>;
 };
 
-const games = [
+const vocabGames = [
   { id: 'flashcards', name: 'Flashcards', icon: Layers, color: 'bg-coral', desc: 'Flip to reveal' },
   { id: 'multiple-choice', name: 'Multiple Choice', icon: CheckCircle, color: 'bg-mint', desc: 'Pick the right answer' },
   { id: 'matching', name: 'Matching', icon: Puzzle, color: 'bg-sky', desc: 'Connect pairs' },
@@ -35,14 +34,25 @@ const games = [
   { id: 'mole-whacker', name: 'Mole Whacker', icon: Hammer, color: 'bg-rose', desc: 'Listen & whack the mole' },
 ];
 
+const grammarGames = [
+  { id: 'grammar-matching', name: 'Grammar Matching', icon: ArrowRightLeft, color: 'bg-sky', desc: 'Match Q&A pairs' },
+  { id: 'grammar-dictation', name: 'Grammar Dictation', icon: Headphones, color: 'bg-mint', desc: 'Listen & type' },
+  { id: 'quiz-master', name: 'Quiz Master', icon: HelpCircle, color: 'bg-lavender', desc: 'Answer the question' },
+  { id: 'sentence-scramble', name: 'Sentence Scramble', icon: Shuffle, color: 'bg-sunny', desc: 'Reorder the sentence' },
+];
+
 const GameCenter = () => {
   const navigate = useNavigate();
   const [groups, setGroups] = useState<Group[]>([]);
+  const [grammarGroups, setGrammarGroups] = useState<Group[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [selectedGrammarGroups, setSelectedGrammarGroups] = useState<string[]>([]);
   const [wordCount, setWordCount] = useState(0);
+  const [pairCount, setPairCount] = useState(0);
 
   useEffect(() => {
     supabase.from('groups').select('*').order('created_at').then(({ data }) => setGroups(data || []));
+    supabase.from('grammar_groups').select('*').order('created_at').then(({ data }) => setGrammarGroups(data || []));
   }, []);
 
   useEffect(() => {
@@ -51,13 +61,23 @@ const GameCenter = () => {
       .then(({ count }) => setWordCount(count || 0));
   }, [selectedGroups]);
 
-  const toggleGroup = (id: string) => {
-    setSelectedGroups(prev => prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]);
-  };
+  useEffect(() => {
+    if (selectedGrammarGroups.length === 0) { setPairCount(0); return; }
+    supabase.from('grammar_pairs').select('id', { count: 'exact' }).in('group_id', selectedGrammarGroups)
+      .then(({ count }) => setPairCount(count || 0));
+  }, [selectedGrammarGroups]);
 
-  const startGame = (gameId: string) => {
+  const toggleGroup = (id: string) => setSelectedGroups(prev => prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]);
+  const toggleGrammarGroup = (id: string) => setSelectedGrammarGroups(prev => prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]);
+
+  const startVocabGame = (gameId: string) => {
     if (selectedGroups.length === 0 || wordCount < 2) return;
     navigate(`/play/${gameId}?groups=${selectedGroups.join(',')}`);
+  };
+
+  const startGrammarGame = (gameId: string) => {
+    if (selectedGrammarGroups.length === 0 || pairCount < 2) return;
+    navigate(`/play/${gameId}?grammar_groups=${selectedGrammarGroups.join(',')}`);
   };
 
   return (
@@ -65,55 +85,74 @@ const GameCenter = () => {
       <h1 className="text-3xl font-display font-bold text-foreground mb-2">Game Center 🎮</h1>
       <p className="text-muted-foreground mb-8">Select groups, then pick a game!</p>
 
-      {/* Group Selection */}
-      <div className="mb-8">
-        <h2 className="text-lg font-display font-bold text-foreground mb-3">Select Groups</h2>
+      {/* Vocabulary Section */}
+      <div className="mb-10">
+        <h2 className="text-lg font-display font-bold text-foreground mb-3">📚 Vocabulary Groups</h2>
         {groups.length === 0 ? (
-          <p className="text-muted-foreground">No groups yet. Add words first!</p>
+          <p className="text-muted-foreground text-sm">No word groups yet. Add words first!</p>
         ) : (
           <div className="flex flex-wrap gap-3">
             {groups.map(group => (
-              <motion.button
-                key={group.id}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => toggleGroup(group.id)}
+              <motion.button key={group.id} whileTap={{ scale: 0.95 }} onClick={() => toggleGroup(group.id)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-all ${
-                  selectedGroups.includes(group.id)
-                    ? 'bg-primary text-primary-foreground game-card-shadow'
-                    : 'bg-card text-foreground border border-border hover:border-primary/50'
-                }`}
-              >
+                  selectedGroups.includes(group.id) ? 'bg-primary text-primary-foreground game-card-shadow' : 'bg-card text-foreground border border-border hover:border-primary/50'
+                }`}>
                 <GroupIcon group={group} />
                 <span>{group.name}</span>
               </motion.button>
             ))}
           </div>
         )}
-        {selectedGroups.length > 0 && (
-          <p className="text-sm text-muted-foreground mt-2">{wordCount} words selected</p>
-        )}
+        {selectedGroups.length > 0 && <p className="text-sm text-muted-foreground mt-2">{wordCount} words selected</p>}
+
+        <h3 className="text-base font-display font-bold text-foreground mt-4 mb-3">Vocabulary Games</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {vocabGames.map((game, i) => (
+            <motion.button key={game.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+              whileHover={{ scale: 1.03, y: -4 }} whileTap={{ scale: 0.97 }} onClick={() => startVocabGame(game.id)}
+              disabled={selectedGroups.length === 0 || wordCount < 2}
+              className={`p-6 rounded-2xl text-left game-card-shadow transition-all disabled:opacity-40 disabled:cursor-not-allowed ${game.color}`}>
+              <game.icon className="w-8 h-8 mb-3 text-foreground" />
+              <h3 className="font-display font-bold text-lg text-foreground">{game.name}</h3>
+              <p className="text-sm text-foreground/70 mt-1">{game.desc}</p>
+            </motion.button>
+          ))}
+        </div>
       </div>
 
-      {/* Games Grid */}
-      <h2 className="text-lg font-display font-bold text-foreground mb-3">Choose a Game</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {games.map((game, i) => (
-          <motion.button
-            key={game.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.08 }}
-            whileHover={{ scale: 1.03, y: -4 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => startGame(game.id)}
-            disabled={selectedGroups.length === 0 || wordCount < 2}
-            className={`p-6 rounded-2xl text-left game-card-shadow transition-all disabled:opacity-40 disabled:cursor-not-allowed ${game.color}`}
-          >
-            <game.icon className="w-8 h-8 mb-3 text-foreground" />
-            <h3 className="font-display font-bold text-lg text-foreground">{game.name}</h3>
-            <p className="text-sm text-foreground/70 mt-1">{game.desc}</p>
-          </motion.button>
-        ))}
+      {/* Grammar Section */}
+      <div className="mb-8">
+        <h2 className="text-lg font-display font-bold text-foreground mb-3">📝 Grammar Groups</h2>
+        {grammarGroups.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No grammar groups yet. Add grammar pairs first!</p>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {grammarGroups.map(group => (
+              <motion.button key={group.id} whileTap={{ scale: 0.95 }} onClick={() => toggleGrammarGroup(group.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-all ${
+                  selectedGrammarGroups.includes(group.id) ? 'bg-primary text-primary-foreground game-card-shadow' : 'bg-card text-foreground border border-border hover:border-primary/50'
+                }`}>
+                <GroupIcon group={group} />
+                <span>{group.name}</span>
+              </motion.button>
+            ))}
+          </div>
+        )}
+        {selectedGrammarGroups.length > 0 && <p className="text-sm text-muted-foreground mt-2">{pairCount} pairs selected</p>}
+
+        <h3 className="text-base font-display font-bold text-foreground mt-4 mb-3">Grammar Games</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {grammarGames.map((game, i) => (
+            <motion.button key={game.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+              whileHover={{ scale: 1.03, y: -4 }} whileTap={{ scale: 0.97 }} onClick={() => startGrammarGame(game.id)}
+              disabled={selectedGrammarGroups.length === 0 || pairCount < 2}
+              className={`p-6 rounded-2xl text-left game-card-shadow transition-all disabled:opacity-40 disabled:cursor-not-allowed ${game.color}`}>
+              <game.icon className="w-8 h-8 mb-3 text-foreground" />
+              <h3 className="font-display font-bold text-lg text-foreground">{game.name}</h3>
+              <p className="text-sm text-foreground/70 mt-1">{game.desc}</p>
+            </motion.button>
+          ))}
+        </div>
       </div>
     </div>
   );

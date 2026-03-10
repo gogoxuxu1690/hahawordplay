@@ -44,6 +44,77 @@ export type Database = {
         }
         Relationships: []
       }
+      grammar_groups: {
+        Row: {
+          created_at: string
+          emoji: string | null
+          icon_name: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji?: string | null
+          icon_name?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string | null
+          icon_name?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      grammar_pairs: {
+        Row: {
+          answer: string
+          answer_image_url: string | null
+          created_at: string
+          group_id: string
+          id: string
+          question: string
+          question_image_url: string | null
+          user_id: string
+          voice_gender: string
+        }
+        Insert: {
+          answer: string
+          answer_image_url?: string | null
+          created_at?: string
+          group_id: string
+          id?: string
+          question: string
+          question_image_url?: string | null
+          user_id: string
+          voice_gender?: string
+        }
+        Update: {
+          answer?: string
+          answer_image_url?: string | null
+          created_at?: string
+          group_id?: string
+          id?: string
+          question?: string
+          question_image_url?: string | null
+          user_id?: string
+          voice_gender?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grammar_pairs_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "grammar_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       groups: {
         Row: {
           created_at: string

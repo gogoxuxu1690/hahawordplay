@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/AppLayout";
 import Auth from "./pages/Auth";
 import ManageWords from "./pages/ManageWords";
+import ManageGrammar from "./pages/ManageGrammar";
 import GameCenter from "./pages/GameCenter";
 import Progress from "./pages/Progress";
 import FlashcardsGame from "./pages/games/FlashcardsGame";
@@ -21,6 +22,10 @@ import WoodpeckerGame from "./pages/games/WoodpeckerGame";
 import VoiceMasterGame from "./pages/games/VoiceMasterGame";
 import LuckyVoiceGame from "./pages/games/LuckyVoiceGame";
 import MoleWhackerGame from "./pages/games/MoleWhackerGame";
+import GrammarMatchingGame from "./pages/games/GrammarMatchingGame";
+import GrammarDictationGame from "./pages/games/GrammarDictationGame";
+import QuizMasterGame from "./pages/games/QuizMasterGame";
+import SentenceScrambleGame from "./pages/games/SentenceScrambleGame";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +41,7 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<Auth />} />
     <Route path="/" element={<ProtectedRoute><ManageWords /></ProtectedRoute>} />
+    <Route path="/grammar" element={<ProtectedRoute><ManageGrammar /></ProtectedRoute>} />
     <Route path="/games" element={<ProtectedRoute><GameCenter /></ProtectedRoute>} />
     <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
     <Route path="/play/flashcards" element={<ProtectedRoute><FlashcardsGame /></ProtectedRoute>} />
@@ -50,6 +56,10 @@ const AppRoutes = () => (
     <Route path="/play/voice-master" element={<ProtectedRoute><VoiceMasterGame /></ProtectedRoute>} />
     <Route path="/play/lucky-voice" element={<ProtectedRoute><LuckyVoiceGame /></ProtectedRoute>} />
     <Route path="/play/mole-whacker" element={<ProtectedRoute><MoleWhackerGame /></ProtectedRoute>} />
+    <Route path="/play/grammar-matching" element={<ProtectedRoute><GrammarMatchingGame /></ProtectedRoute>} />
+    <Route path="/play/grammar-dictation" element={<ProtectedRoute><GrammarDictationGame /></ProtectedRoute>} />
+    <Route path="/play/quiz-master" element={<ProtectedRoute><QuizMasterGame /></ProtectedRoute>} />
+    <Route path="/play/sentence-scramble" element={<ProtectedRoute><SentenceScrambleGame /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

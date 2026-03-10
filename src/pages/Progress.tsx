@@ -26,6 +26,10 @@ const gameLabels: Record<string, string> = {
   'voice-master': '🎤 Voice Master',
   'lucky-voice': '🎰 Lucky Voice',
   'mole-whacker': '🔨 Mole Whacker',
+  'grammar-matching': '🧩 Grammar Matching',
+  'grammar-dictation': '🎧 Grammar Dictation',
+  'quiz-master': '🧠 Quiz Master',
+  'sentence-scramble': '🔀 Sentence Scramble',
 };
 
 const Progress = () => {
