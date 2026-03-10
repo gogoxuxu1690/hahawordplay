@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useGrammarPairs } from '@/hooks/useGrammarPairs';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { useRecordResult } from '@/hooks/useGameWords';
-import GameResults from '@/components/GameResults';
+import { GameResults } from '@/components/GameResults';
 
 // Split sentence into tokens, keeping punctuation attached to the preceding word
 function tokenize(sentence: string): string[] {
