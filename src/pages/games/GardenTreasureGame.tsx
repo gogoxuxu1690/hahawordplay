@@ -342,9 +342,8 @@ const GardenTreasureGame = () => {
     return (
       <GameResults
         score={score}
-        total={words.length * 10}
+        total={words.length}
         correct={correctCount}
-        totalWords={words.length}
         gameType="garden-treasure"
         onPlayAgain={() => {
           setCurrentIdx(0);
