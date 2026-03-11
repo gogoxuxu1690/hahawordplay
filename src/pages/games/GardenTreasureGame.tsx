@@ -294,7 +294,11 @@ const GardenTreasureGame = () => {
   }, [currentIdx, words.length, correctCount, score, saveSession, playFinish]);
 
   /* ─── Start screen ─── */
-  if (!gameStarted) {
+  const startScreen = !gameStarted;
+  const loadingScreen = gameStarted && loading;
+  const emptyScreen = gameStarted && !loading && words.length < 1;
+
+  if (startScreen) {
     return (
       <div className="relative min-h-[80vh] flex flex-col items-center justify-center overflow-hidden rounded-2xl">
         <video
