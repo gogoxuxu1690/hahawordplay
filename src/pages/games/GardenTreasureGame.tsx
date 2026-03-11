@@ -6,7 +6,7 @@ import { ArrowLeft, Volume2, VolumeX } from 'lucide-react';
 import { useGameWords } from '@/hooks/useGameWords';
 import { useRecordResult } from '@/hooks/useGameWords';
 import { useGameSounds, getGlobalMuted } from '@/hooks/useGameSounds';
-import GameResults from '@/components/GameResults';
+import { GameResults } from '@/components/GameResults';
 
 /* ─── constants ─── */
 const SPARKLE_LIFETIME = 1000;
