@@ -3,11 +3,13 @@ import { motion } from 'framer-motion';
 import { Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useGameWords, useRecordResult } from '@/hooks/useGameWords';
+import { useGameSounds } from '@/hooks/useGameSounds';
 import { GameResults } from '@/components/GameResults';
 
 const MultipleChoiceGame = () => {
   const { words, loading } = useGameWords();
   const { recordResult, saveSession } = useRecordResult();
+  const { playCorrect, playWrong } = useGameSounds();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [results, setResults] = useState<boolean[]>([]);
@@ -27,6 +29,11 @@ const MultipleChoiceGame = () => {
     if (selected) return;
     setSelected(option);
     const correct = option === current.word;
+    if (correct) {
+      playCorrect();
+    } else {
+      playWrong();
+    }
     await recordResult(current.id, correct);
     const newResults = [...results, correct];
     setResults(newResults);
@@ -70,7 +77,6 @@ const MultipleChoiceGame = () => {
       </div>
 
       <motion.div key={currentIndex} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        {/* Question */}
         <div className="bg-card rounded-2xl game-card-shadow p-8 text-center mb-6">
           {current.image_url && (
             <img src={current.image_url} alt="?" className="w-36 h-36 object-cover rounded-2xl mx-auto mb-4" />
@@ -79,7 +85,6 @@ const MultipleChoiceGame = () => {
           {current.description && <p className="text-sm text-muted-foreground mt-2">{current.description}</p>}
         </div>
 
-        {/* Options */}
         <div className="grid grid-cols-2 gap-3">
           {options.map((option, i) => {
             const isCorrect = option === current.word;
