@@ -61,6 +61,7 @@ const AppRoutes = () => (
     <Route path="/play/grammar-dictation" element={<ProtectedRoute><GrammarDictationGame /></ProtectedRoute>} />
     <Route path="/play/quiz-master" element={<ProtectedRoute><QuizMasterGame /></ProtectedRoute>} />
     <Route path="/play/sentence-scramble" element={<ProtectedRoute><SentenceScrambleGame /></ProtectedRoute>} />
+    <Route path="/play/garden-treasure" element={<ProtectedRoute><GardenTreasureGame /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
