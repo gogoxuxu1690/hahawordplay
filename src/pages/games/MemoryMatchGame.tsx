@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGameWords, useRecordResult } from '@/hooks/useGameWords';
+import { useGameSounds } from '@/hooks/useGameSounds';
 import { GameResults } from '@/components/GameResults';
 
 interface Card {
@@ -13,6 +14,7 @@ interface Card {
 const MemoryMatchGame = () => {
   const { words, loading } = useGameWords(6);
   const { recordResult, saveSession } = useRecordResult();
+  const { playCorrect, playWrong } = useGameSounds();
   const [cards, setCards] = useState<Card[]>([]);
   const [flipped, setFlipped] = useState<Set<string>>(new Set());
   const [matched, setMatched] = useState<Set<string>>(new Set());
@@ -28,7 +30,6 @@ const MemoryMatchGame = () => {
       newCards.push({ id: `word-${w.id}`, wordId: w.id, type: 'word', content: w.word });
       newCards.push({ id: `img-${w.id}`, wordId: w.id, type: 'image', content: w.image_url || w.word[0] });
     });
-    // Shuffle
     for (let i = newCards.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [newCards[i], newCards[j]] = [newCards[j], newCards[i]];
@@ -49,6 +50,7 @@ const MemoryMatchGame = () => {
       const card2 = cards.find(c => c.id === newSelected[1])!;
 
       if (card1.wordId === card2.wordId) {
+        playCorrect();
         setMatched(prev => new Set([...prev, newSelected[0], newSelected[1]]));
         setScore(s => s + 10);
         await recordResult(card1.wordId, true);
@@ -60,6 +62,7 @@ const MemoryMatchGame = () => {
           setTimeout(() => setFinished(true), 500);
         }
       } else {
+        playWrong();
         await recordResult(card1.wordId, false);
         setTimeout(() => {
           setFlipped(prev => {
@@ -81,7 +84,6 @@ const MemoryMatchGame = () => {
     setScore(0);
     setMoves(0);
     setFinished(false);
-    // Re-shuffle
     const shuffled = [...cards].sort(() => Math.random() - 0.5);
     setCards(shuffled);
   };
@@ -90,7 +92,7 @@ const MemoryMatchGame = () => {
   if (words.length < 2) return <div className="text-center py-20 text-muted-foreground">Need at least 2 words!</div>;
   if (finished) return <GameResults score={score} total={words.length} correct={matched.size / 2} gameType="memory-match" onPlayAgain={reset} />;
 
-  const cols = cards.length <= 8 ? 4 : cards.length <= 12 ? 4 : 4;
+  const cols = 4;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -99,7 +101,7 @@ const MemoryMatchGame = () => {
         <span className="text-sm text-muted-foreground font-semibold">Moves: {moves} · Score: {score}</span>
       </div>
 
-      <div className={`grid grid-cols-${cols} gap-3`} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+      <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
         {cards.map(card => {
           const isFlipped = flipped.has(card.id) || matched.has(card.id);
           const isMatched = matched.has(card.id);

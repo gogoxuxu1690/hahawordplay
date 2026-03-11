@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useGameWords, useRecordResult } from '@/hooks/useGameWords';
+import { useGameSounds } from '@/hooks/useGameSounds';
 import { GameResults } from '@/components/GameResults';
 
 function hideChars(word: string): { display: string; hidden: number[] } {
@@ -21,6 +22,7 @@ function hideChars(word: string): { display: string; hidden: number[] } {
 const FillBlanksGame = () => {
   const { words, loading } = useGameWords();
   const { recordResult, saveSession } = useRecordResult();
+  const { playCorrect, playWrong } = useGameSounds();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answer, setAnswer] = useState('');
   const [showResult, setShowResult] = useState<boolean | null>(null);
@@ -34,6 +36,7 @@ const FillBlanksGame = () => {
     if (!current || showResult !== null) return;
     const correct = answer.toLowerCase().trim() === current.word.toLowerCase().trim();
     setShowResult(correct);
+    if (correct) playCorrect(); else playWrong();
     await recordResult(current.id, correct);
     const newResults = [...results, correct];
     setResults(newResults);

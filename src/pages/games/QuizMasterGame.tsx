@@ -10,6 +10,7 @@ import { GameResults } from '@/components/GameResults';
 
 interface Round {
   questionText: string;
+  questionImage: string | null;
   correctAnswer: string;
   options: string[];
   gender: string;
@@ -34,7 +35,13 @@ const QuizMasterGame = () => {
     const r: Round[] = pairs.map(p => {
       const distractors = allAnswers.filter(a => a !== p.answer).sort(() => Math.random() - 0.5).slice(0, 3);
       const options = [...distractors, p.answer].sort(() => Math.random() - 0.5);
-      return { questionText: p.question, correctAnswer: p.answer, options, gender: p.voice_gender };
+      return {
+        questionText: p.question,
+        questionImage: p.question_image_url,
+        correctAnswer: p.answer,
+        options,
+        gender: p.voice_gender,
+      };
     });
     setRounds(r);
   }, [pairs]);
@@ -104,8 +111,16 @@ const QuizMasterGame = () => {
       <p className="text-sm text-muted-foreground mb-4">Round {roundIdx + 1} / {rounds.length}</p>
 
       <motion.div key={roundIdx} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-2xl p-8 game-card-shadow space-y-6">
-        <div className="text-center">
-          <Button variant="outline" size="lg" className="rounded-xl gap-2 mx-auto mb-4" onClick={() => speak(current.questionText, current.gender)}>
+        <div className="text-center space-y-4">
+          {/* Question image displayed prominently */}
+          {current.questionImage && (
+            <img
+              src={current.questionImage}
+              alt="Question"
+              className="w-48 h-48 object-cover rounded-2xl mx-auto border-2 border-border"
+            />
+          )}
+          <Button variant="outline" size="lg" className="rounded-xl gap-2 mx-auto" onClick={() => speak(current.questionText, current.gender)}>
             <Volume2 className="w-5 h-5" /> Listen Again
           </Button>
           <p className="font-display font-bold text-lg text-foreground">{current.questionText}</p>

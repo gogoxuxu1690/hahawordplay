@@ -1,11 +1,13 @@
 import { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useGameWords, useRecordResult } from '@/hooks/useGameWords';
+import { useGameSounds } from '@/hooks/useGameSounds';
 import { GameResults } from '@/components/GameResults';
 
 const MatchingGame = () => {
   const { words, loading } = useGameWords(6);
   const { recordResult, saveSession } = useRecordResult();
+  const { playCorrect, playWrong } = useGameSounds();
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [matched, setMatched] = useState<Set<string>>(new Set());
@@ -24,6 +26,7 @@ const MatchingGame = () => {
 
     setAttempts(a => a + 1);
     if (w === img) {
+      playCorrect();
       setMatched(prev => new Set([...prev, w]));
       setScore(s => s + 10);
       await recordResult(w, true);
@@ -36,6 +39,7 @@ const MatchingGame = () => {
         setFinished(true);
       }
     } else {
+      playWrong();
       setWrong({ word: w, image: img });
       await recordResult(w, false);
       setTimeout(() => {
@@ -83,7 +87,6 @@ const MatchingGame = () => {
       </div>
 
       <div className="grid grid-cols-2 gap-8">
-        {/* Words column */}
         <div className="space-y-3">
           <p className="text-sm font-bold text-muted-foreground mb-2">Words</p>
           {shuffledWords.map(word => {
@@ -109,7 +112,6 @@ const MatchingGame = () => {
           })}
         </div>
 
-        {/* Images column */}
         <div className="space-y-3">
           <p className="text-sm font-bold text-muted-foreground mb-2">Images</p>
           {shuffledImages.map(word => {
