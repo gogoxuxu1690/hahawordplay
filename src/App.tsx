@@ -26,6 +26,7 @@ import GrammarMatchingGame from "./pages/games/GrammarMatchingGame";
 import GrammarDictationGame from "./pages/games/GrammarDictationGame";
 import QuizMasterGame from "./pages/games/QuizMasterGame";
 import SentenceScrambleGame from "./pages/games/SentenceScrambleGame";
+import GardenTreasureGame from "./pages/games/GardenTreasureGame";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ const AppRoutes = () => (
     <Route path="/play/grammar-dictation" element={<ProtectedRoute><GrammarDictationGame /></ProtectedRoute>} />
     <Route path="/play/quiz-master" element={<ProtectedRoute><QuizMasterGame /></ProtectedRoute>} />
     <Route path="/play/sentence-scramble" element={<ProtectedRoute><SentenceScrambleGame /></ProtectedRoute>} />
+    <Route path="/play/garden-treasure" element={<ProtectedRoute><GardenTreasureGame /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
