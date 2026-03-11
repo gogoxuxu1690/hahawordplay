@@ -335,8 +335,8 @@ const GardenTreasureGame = () => {
     );
   }
 
-  if (loading) return <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground">Loading garden...</div>;
-  if (words.length < 1) return <div className="text-center py-20 text-muted-foreground">Need at least 1 word to play!</div>;
+  if (loadingScreen) return <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground">Loading garden...</div>;
+  if (emptyScreen) return <div className="text-center py-20 text-muted-foreground">Need at least 1 word to play!</div>;
 
   if (finished) {
     return (
