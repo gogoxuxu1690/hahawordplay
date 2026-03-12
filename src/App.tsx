@@ -27,6 +27,8 @@ import GrammarDictationGame from "./pages/games/GrammarDictationGame";
 import QuizMasterGame from "./pages/games/QuizMasterGame";
 import SentenceScrambleGame from "./pages/games/SentenceScrambleGame";
 import GardenTreasureGame from "./pages/games/GardenTreasureGame";
+import GrammarGardenTreasureGame from "./pages/games/GrammarGardenTreasureGame";
+import UnderseaKeyMasterGame from "./pages/games/UnderseaKeyMasterGame";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
