@@ -33,6 +33,7 @@ const vocabGames = [
   { id: 'lucky-voice', name: 'Lucky Voice', icon: Dices, color: 'bg-sunny', desc: 'Spin & speak to win' },
   { id: 'mole-whacker', name: 'Mole Whacker', icon: Hammer, color: 'bg-rose', desc: 'Listen & whack the mole' },
   { id: 'garden-treasure', name: 'Garden Treasure', icon: TreePine, color: 'bg-mint', desc: 'Find hidden letters!' },
+  { id: 'undersea-key-master', name: 'Undersea Key Master', icon: Key, color: 'bg-sky', desc: 'Unlock treasure chests!' },
 ];
 
 const grammarGames = [
