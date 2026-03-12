@@ -41,6 +41,8 @@ const grammarGames = [
   { id: 'grammar-dictation', name: 'Grammar Dictation', icon: Headphones, color: 'bg-mint', desc: 'Listen & type' },
   { id: 'quiz-master', name: 'Quiz Master', icon: HelpCircle, color: 'bg-lavender', desc: 'Answer the question' },
   { id: 'sentence-scramble', name: 'Sentence Scramble', icon: Shuffle, color: 'bg-sunny', desc: 'Reorder the sentence' },
+  { id: 'grammar-garden-treasure', name: 'Grammar Garden', icon: TreePine, color: 'bg-mint', desc: 'Find words in the garden!' },
+  { id: 'undersea-key-master', name: 'Undersea Key Master', icon: Key, color: 'bg-sky', desc: 'Unlock grammar chests!' },
 ];
 
 const GameCenter = () => {
