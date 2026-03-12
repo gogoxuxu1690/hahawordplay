@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Layers, Shuffle, CheckCircle, PenTool, Puzzle, Brain, Crosshair, Ear, Bird, Mic, Dices, Hammer, BookType, Headphones, HelpCircle, ArrowRightLeft, TreePine } from 'lucide-react';
+import { Layers, Shuffle, CheckCircle, PenTool, Puzzle, Brain, Crosshair, Ear, Bird, Mic, Dices, Hammer, BookType, Headphones, HelpCircle, ArrowRightLeft, TreePine, Anchor, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -33,6 +33,7 @@ const vocabGames = [
   { id: 'lucky-voice', name: 'Lucky Voice', icon: Dices, color: 'bg-sunny', desc: 'Spin & speak to win' },
   { id: 'mole-whacker', name: 'Mole Whacker', icon: Hammer, color: 'bg-rose', desc: 'Listen & whack the mole' },
   { id: 'garden-treasure', name: 'Garden Treasure', icon: TreePine, color: 'bg-mint', desc: 'Find hidden letters!' },
+  { id: 'undersea-key-master', name: 'Undersea Key Master', icon: Key, color: 'bg-sky', desc: 'Unlock treasure chests!' },
 ];
 
 const grammarGames = [
@@ -40,6 +41,8 @@ const grammarGames = [
   { id: 'grammar-dictation', name: 'Grammar Dictation', icon: Headphones, color: 'bg-mint', desc: 'Listen & type' },
   { id: 'quiz-master', name: 'Quiz Master', icon: HelpCircle, color: 'bg-lavender', desc: 'Answer the question' },
   { id: 'sentence-scramble', name: 'Sentence Scramble', icon: Shuffle, color: 'bg-sunny', desc: 'Reorder the sentence' },
+  { id: 'grammar-garden-treasure', name: 'Grammar Garden', icon: TreePine, color: 'bg-mint', desc: 'Find words in the garden!' },
+  { id: 'undersea-key-master', name: 'Undersea Key Master', icon: Key, color: 'bg-sky', desc: 'Unlock grammar chests!' },
 ];
 
 const GameCenter = () => {
