@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Volume2, Play } from 'lucide-react';
+import { ArrowLeft, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useGrammarPairs } from '@/hooks/useGrammarPairs';
 import { useGameSounds } from '@/hooks/useGameSounds';
@@ -14,7 +14,7 @@ const GrammarMatchingGame = () => {
   const { playCorrect, playWrong } = useGameSounds();
   const { saveSession } = useRecordResult();
 
-  const [questions, setQuestions] = useState<{ id: string; text: string; gender: string }[]>([]);
+  const [questions, setQuestions] = useState<{ id: string; text: string; gender: string; imageUrl: string | null }[]>([]);
   const [answers, setAnswers] = useState<{ id: string; text: string }[]>([]);
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
   const [matched, setMatched] = useState<Set<string>>(new Set());
@@ -25,7 +25,10 @@ const GrammarMatchingGame = () => {
 
   useEffect(() => {
     if (pairs.length === 0) return;
-    setQuestions([...pairs].sort(() => Math.random() - 0.5).map(p => ({ id: p.id, text: p.question, gender: p.voice_gender })));
+    setQuestions([...pairs].sort(() => Math.random() - 0.5).map(p => ({
+      id: p.id, text: p.question, gender: p.voice_gender,
+      imageUrl: p.question_image_url,
+    })));
     setAnswers([...pairs].sort(() => Math.random() - 0.5).map(p => ({ id: p.id, text: p.answer })));
   }, [pairs]);
 
@@ -49,9 +52,7 @@ const GrammarMatchingGame = () => {
       setMatched(prev => new Set([...prev, answerId]));
       setScore(s => s + 10);
       setSelectedQuestion(null);
-      if (matched.size + 1 === pairs.length) {
-        setTimeout(() => setFinished(true), 600);
-      }
+      if (matched.size + 1 === pairs.length) setTimeout(() => setFinished(true), 600);
     } else {
       playWrong();
       setWrong(answerId);
@@ -68,7 +69,6 @@ const GrammarMatchingGame = () => {
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
   if (pairs.length < 2) return <div className="text-center py-20"><p className="text-muted-foreground">Need at least 2 pairs.</p><Button onClick={() => navigate('/games')} className="mt-4 rounded-xl">Back</Button></div>;
-
   if (finished) return <GameResults score={score} total={pairs.length} correct={pairs.length - mistakes} gameType="grammar-matching" onPlayAgain={() => window.location.reload()} />;
 
   return (
@@ -79,19 +79,13 @@ const GrammarMatchingGame = () => {
         <span className="ml-auto text-sm font-bold text-primary">{score} pts</span>
       </div>
       <div className="grid grid-cols-2 gap-6">
-        {/* Left: Audio play buttons for Questions */}
+        {/* Left: Audio + Image for Questions */}
         <div className="space-y-3">
-          <p className="text-xs font-bold text-muted-foreground uppercase mb-2">🔊 Listen</p>
+          <p className="text-xs font-bold text-muted-foreground uppercase mb-2">🔊 Listen & Look</p>
           {questions.map((q, idx) => (
-            <motion.button
-              key={q.id}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => {
-                if (matched.has(q.id)) return;
-                speak(q.text, q.gender);
-                setSelectedQuestion(q.id);
-              }}
-              className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+            <motion.button key={q.id} whileTap={{ scale: 0.97 }}
+              onClick={() => { if (matched.has(q.id)) return; speak(q.text, q.gender); setSelectedQuestion(q.id); }}
+              className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
                 matched.has(q.id) ? 'opacity-40 border-primary bg-primary/10' :
                 selectedQuestion === q.id ? 'border-primary bg-primary/10 game-card-shadow' :
                 'border-border bg-card hover:border-primary/50'
@@ -103,6 +97,10 @@ const GrammarMatchingGame = () => {
               }`}>
                 <Play className="w-5 h-5" />
               </div>
+              {/* Show question image if available */}
+              {q.imageUrl && (
+                <img src={q.imageUrl} alt="" className="w-14 h-14 rounded-lg object-cover border border-border shrink-0" />
+              )}
               <span className="font-semibold text-foreground text-sm">Audio {idx + 1}</span>
             </motion.button>
           ))}
@@ -111,9 +109,7 @@ const GrammarMatchingGame = () => {
         <div className="space-y-3">
           <p className="text-xs font-bold text-muted-foreground uppercase mb-2">📝 Answers</p>
           {answers.map(a => (
-            <motion.button
-              key={a.id}
-              whileTap={{ scale: 0.97 }}
+            <motion.button key={a.id} whileTap={{ scale: 0.97 }}
               onClick={() => handleAnswerClick(a.id)}
               className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
                 matched.has(a.id) ? 'opacity-40 border-primary bg-primary/10' :
