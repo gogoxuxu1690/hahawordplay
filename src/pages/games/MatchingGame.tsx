@@ -1,8 +1,20 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { Volume2 } from 'lucide-react';
 import { useGameWords, useRecordResult } from '@/hooks/useGameWords';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { GameResults } from '@/components/GameResults';
+
+function speakWord(word: string, gender: string) {
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  u.lang = 'en-US';
+  u.pitch = gender === 'male' ? 0.9 : 1.2;
+  u.rate = 0.9;
+  speechSynthesis.speak(u);
+}
+
+const CARD_SIZE = 'h-24 w-full';
 
 const MatchingGame = () => {
   const { words, loading } = useGameWords(6);
@@ -62,6 +74,11 @@ const MatchingGame = () => {
     if (selectedWord) tryMatch(null, id);
   };
 
+  const handleSpeak = useCallback((e: React.MouseEvent, word: typeof words[0]) => {
+    e.stopPropagation();
+    speakWord(word.word, word.voice_gender);
+  }, []);
+
   const reset = () => {
     setSelectedWord(null);
     setSelectedImage(null);
@@ -99,14 +116,22 @@ const MatchingGame = () => {
                 layout
                 whileTap={{ scale: 0.95 }}
                 onClick={() => !isMatched && selectWord(word.id)}
-                className={`w-full p-4 rounded-xl font-bold text-left transition-all ${
+                className={`${CARD_SIZE} flex items-center justify-center gap-2 rounded-xl font-bold transition-all ${
                   isMatched ? 'bg-secondary/30 text-secondary-foreground opacity-50' :
                   isWrong ? 'bg-destructive/20 ring-2 ring-destructive' :
                   isSelected ? 'bg-primary text-primary-foreground game-card-shadow' :
                   'bg-card text-foreground game-card-shadow hover:game-card-shadow-hover'
                 }`}
               >
-                {word.word}
+                <span className="truncate">{word.word}</span>
+                {!isMatched && (
+                  <button
+                    onClick={(e) => handleSpeak(e, word)}
+                    className="flex-shrink-0 p-1.5 rounded-full hover:bg-white/20 transition-colors"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                  </button>
+                )}
               </motion.button>
             );
           })}
@@ -124,7 +149,7 @@ const MatchingGame = () => {
                 layout
                 whileTap={{ scale: 0.95 }}
                 onClick={() => !isMatched && selectImage(word.id)}
-                className={`w-full p-3 rounded-xl transition-all flex items-center justify-center ${
+                className={`${CARD_SIZE} flex items-center justify-center rounded-xl transition-all ${
                   isMatched ? 'bg-secondary/30 opacity-50' :
                   isWrong ? 'bg-destructive/20 ring-2 ring-destructive' :
                   isSelected ? 'ring-2 ring-primary game-card-shadow' :

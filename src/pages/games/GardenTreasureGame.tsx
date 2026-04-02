@@ -8,41 +8,62 @@ import { useRecordResult } from '@/hooks/useGameWords';
 import { useGameSounds, getGlobalMuted } from '@/hooks/useGameSounds';
 import { GameResults } from '@/components/GameResults';
 
-/* ─── constants ─── */
 const SPARKLE_LIFETIME = 1000;
-const PIECE_SIZE = 56;
+const PIECE_SIZE = 52;
 const BGM_FULL = 0.4;
 const BGM_DUCK = 0.12;
 
-/* ─── types ─── */
 interface Sparkle { id: number; x: number; y: number; born: number; color: string; }
-interface Piece { char: string; index: number; x: number; y: number; found: boolean; hovered: boolean; asset: string; assetRotation: number; }
+interface Piece { char: string; index: number; x: number; y: number; found: boolean; hovered: boolean; asset: string; assetRotation: number; isDistractor: boolean; }
 
-/* ─── garden assets (bushes, flowers, tree trunks) ─── */
 const GARDEN_ASSETS = ['🌳', '🌿', '🌺', '🌻', '🍀', '🌹', '🪴', '🌲', '🌾', '🪻', '🌸', '🍃'];
+const DISTRACTOR_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-/* ─── magic-wand cursor ─── */
 const WAND_CURSOR = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23FFD700'/%3E%3Cstop offset='100%25' stop-color='%23FFA500'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cline x1='4' y1='28' x2='20' y2='12' stroke='url(%23g)' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='22' cy='10' r='4' fill='%23FFD700'/%3E%3Cline x1='22' y1='2' x2='22' y2='6' stroke='%23FFD700' stroke-width='1.5'/%3E%3Cline x1='28' y1='10' x2='26' y2='10' stroke='%23FFD700' stroke-width='1.5'/%3E%3Cline x1='27' y1='5' x2='25' y2='7' stroke='%23FFD700' stroke-width='1.5'/%3E%3C/svg%3E") 4 28, auto`;
 
-/* ─── scatter pieces behind garden assets ─── */
-function scatterPieces(chars: string[]): Piece[] {
+function generateDistractors(word: string, count: number): string[] {
+  const wordChars = new Set(word.toUpperCase().split(''));
+  const available = DISTRACTOR_LETTERS.split('').filter(c => !wordChars.has(c));
+  const result: string[] = [];
+  for (let i = 0; i < count && available.length > 0; i++) {
+    const idx = Math.floor(Math.random() * available.length);
+    result.push(available.splice(idx, 1)[0]);
+  }
+  return result;
+}
+
+function scatterPieces(chars: string[], distractors: string[]): Piece[] {
   const margin = 80;
   const topMargin = 100;
   const maxW = Math.min(window.innerWidth, 900) - margin * 2;
   const maxH = Math.min(window.innerHeight - 200, 500) - margin;
-  return chars.map((char, index) => ({
-    char,
-    index,
-    x: margin + Math.random() * maxW,
-    y: topMargin + margin + Math.random() * maxH,
-    found: false,
-    hovered: false,
-    asset: GARDEN_ASSETS[Math.floor(Math.random() * GARDEN_ASSETS.length)],
-    assetRotation: Math.random() * 30 - 15,
-  }));
+  const allPieces: Piece[] = [];
+
+  chars.forEach((char, index) => {
+    allPieces.push({
+      char: char.toUpperCase(), index,
+      x: margin + Math.random() * maxW,
+      y: topMargin + margin + Math.random() * maxH,
+      found: false, hovered: false, isDistractor: false,
+      asset: GARDEN_ASSETS[Math.floor(Math.random() * GARDEN_ASSETS.length)],
+      assetRotation: Math.random() * 30 - 15,
+    });
+  });
+
+  distractors.forEach((char, i) => {
+    allPieces.push({
+      char, index: 100 + i,
+      x: margin + Math.random() * maxW,
+      y: topMargin + margin + Math.random() * maxH,
+      found: false, hovered: false, isDistractor: true,
+      asset: GARDEN_ASSETS[Math.floor(Math.random() * GARDEN_ASSETS.length)],
+      assetRotation: Math.random() * 30 - 15,
+    });
+  });
+
+  return allPieces.sort(() => Math.random() - 0.5);
 }
 
-/* ─── Sparkle trail ─── */
 const SparkleTrail = ({ sparkles }: { sparkles: Sparkle[] }) => (
   <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
     {sparkles.map(s => {
@@ -59,29 +80,39 @@ const SparkleTrail = ({ sparkles }: { sparkles: Sparkle[] }) => (
   </div>
 );
 
-/* ─── Collection bar ─── */
-const CollectionBar = ({ collected, total }: { collected: string[]; total: number }) => (
+/* Slot bar: users drag letters here in any order */
+const SlotBar = ({ slots, total, onDropSlot }: { slots: (string | null)[]; total: number; onDropSlot: (slotIdx: number) => void }) => (
   <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 px-6 py-3 rounded-2xl bg-black/40 backdrop-blur-md border border-white/20 min-w-[200px]">
     {Array.from({ length: total }).map((_, i) => (
-      <motion.span key={i} className="inline-flex items-center justify-center w-10 h-10 rounded-lg text-lg font-bold"
+      <motion.div
+        key={i}
+        className="inline-flex items-center justify-center w-10 h-10 rounded-lg text-lg font-bold"
         style={{
-          background: collected[i] ? 'linear-gradient(135deg, #FFD700, #FFA500)' : 'rgba(255,255,255,0.1)',
-          color: collected[i] ? '#1a1a2e' : 'rgba(255,255,255,0.3)',
-          border: collected[i] ? '2px solid #FFD700' : '1px dashed rgba(255,255,255,0.2)',
+          background: slots[i] ? 'linear-gradient(135deg, #FFD700, #FFA500)' : 'rgba(255,255,255,0.1)',
+          color: slots[i] ? '#1a1a2e' : 'rgba(255,255,255,0.3)',
+          border: slots[i] ? '2px solid #FFD700' : '1px dashed rgba(255,255,255,0.2)',
+          cursor: !slots[i] ? 'pointer' : 'default',
         }}
-        initial={collected[i] ? { scale: 0, y: 60 } : {}}
-        animate={collected[i] ? { scale: 1, y: 0 } : {}}
+        onDragOver={e => { e.preventDefault(); e.currentTarget.style.transform = 'scale(1.15)'; }}
+        onDragLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+        onDrop={e => {
+          e.preventDefault();
+          e.currentTarget.style.transform = 'scale(1)';
+          onDropSlot(i);
+        }}
+        whileHover={!slots[i] ? { scale: 1.1 } : {}}
+        initial={slots[i] ? { scale: 0, y: 60 } : {}}
+        animate={slots[i] ? { scale: 1, y: 0 } : {}}
         transition={{ type: 'spring', stiffness: 400, damping: 15 }}
       >
-        {collected[i] || ''}
-      </motion.span>
+        {slots[i] || ''}
+      </motion.div>
     ))}
   </div>
 );
 
-/* ─── Treasure chest celebration ─── */
-const TreasureChest = ({ onDone }: { onDone: () => void }) => {
-  useEffect(() => { const t = setTimeout(onDone, 2500); return () => clearTimeout(t); }, [onDone]);
+const TreasureChest = ({ onNext }: { onNext: () => void }) => {
+  useEffect(() => { const t = setTimeout(onNext, 2000); return () => clearTimeout(t); }, [onNext]);
   return (
     <motion.div className="fixed inset-0 z-50 flex flex-col items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div className="absolute inset-0 bg-black/50" />
@@ -90,6 +121,9 @@ const TreasureChest = ({ onDone }: { onDone: () => void }) => {
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5 }} className="text-4xl font-display font-bold text-yellow-300 drop-shadow-lg">
           ✨ Treasure Found! ✨
         </motion.div>
+        <Button onClick={onNext} className="mt-6 px-8 py-3 text-lg font-bold bg-gradient-to-r from-yellow-400 to-orange-500 text-black rounded-xl hover:from-yellow-300 hover:to-orange-400 z-20">
+          Next ➡️
+        </Button>
         {Array.from({ length: 20 }).map((_, i) => {
           const angle = (i / 20) * Math.PI * 2;
           const dist = 80 + Math.random() * 120;
@@ -108,7 +142,6 @@ const TreasureChest = ({ onDone }: { onDone: () => void }) => {
   );
 };
 
-/* ─── MAIN GAME ─── */
 const GardenTreasureGame = () => {
   const navigate = useNavigate();
   const { words, loading } = useGameWords(20);
@@ -117,8 +150,7 @@ const GardenTreasureGame = () => {
 
   const [currentIdx, setCurrentIdx] = useState(0);
   const [pieces, setPieces] = useState<Piece[]>([]);
-  const [collected, setCollected] = useState<string[]>([]);
-  const [nextExpected, setNextExpected] = useState(0);
+  const [slots, setSlots] = useState<(string | null)[]>([]);
   const [sparkles, setSparkles] = useState<Sparkle[]>([]);
   const [showChest, setShowChest] = useState(false);
   const [score, setScore] = useState(0);
@@ -126,6 +158,7 @@ const GardenTreasureGame = () => {
   const [finished, setFinished] = useState(false);
   const [bgmPlaying, setBgmPlaying] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+  const [draggedPiece, setDraggedPiece] = useState<Piece | null>(null);
 
   const sparkleId = useRef(0);
   const bgmRef = useRef<HTMLAudioElement | null>(null);
@@ -133,9 +166,8 @@ const GardenTreasureGame = () => {
   const animFrameRef = useRef<number>(0);
 
   const currentWord = words[currentIdx];
-  const chars = useMemo(() => currentWord?.word.split('') || [], [currentWord]);
+  const chars = useMemo(() => currentWord?.word.toUpperCase().split('') || [], [currentWord]);
 
-  /* ─── BGM ─── */
   useEffect(() => {
     const audio = new Audio('/media/garden-bgm.mp3');
     audio.loop = true; audio.volume = BGM_FULL;
@@ -157,16 +189,15 @@ const GardenTreasureGame = () => {
     }
   }, [bgmPlaying]);
 
-  /* ─── Setup round ─── */
   useEffect(() => {
     if (!currentWord || !gameStarted) return;
-    setPieces(scatterPieces(currentWord.word.split('')));
-    setCollected([]);
-    setNextExpected(0);
+    const distractors = generateDistractors(currentWord.word, 3);
+    setPieces(scatterPieces(currentWord.word.split(''), distractors));
+    setSlots(new Array(currentWord.word.length).fill(null));
     setShowChest(false);
+    setDraggedPiece(null);
   }, [currentIdx, currentWord, gameStarted]);
 
-  /* ─── Sparkle cleanup ─── */
   useEffect(() => {
     const tick = () => {
       setSparkles(prev => prev.filter(s => Date.now() - s.born < SPARKLE_LIFETIME));
@@ -189,22 +220,34 @@ const GardenTreasureGame = () => {
     setPieces(prev => prev.map(p => p.index === index ? { ...p, hovered } : p));
   }, []);
 
-  /* ─── Click piece — supports duplicate letters ─── */
-  const handlePieceClick = useCallback((piece: Piece) => {
+  const handleDragStart = useCallback((piece: Piece) => {
     if (piece.found) return;
-    const expectedChar = chars[nextExpected];
+    setDraggedPiece(piece);
+  }, []);
 
-    // Accept ANY unfound piece with the correct character (handles duplicates like "SEE")
-    if (piece.char.toLowerCase() === expectedChar?.toLowerCase()) {
+  const handleDropSlot = useCallback((slotIdx: number) => {
+    if (!draggedPiece || !currentWord) return;
+    const expectedChar = chars[slotIdx];
+
+    if (draggedPiece.isDistractor) {
+      duckBgm();
+      playWrong();
+      setDraggedPiece(null);
+      return;
+    }
+
+    if (draggedPiece.char.toUpperCase() === expectedChar && !slots[slotIdx]) {
       duckBgm();
       playCorrect();
-      setPieces(prev => prev.map(p => p.index === piece.index ? { ...p, found: true } : p));
-      setCollected(prev => [...prev, piece.char]);
-      const newNext = nextExpected + 1;
-      setNextExpected(newNext);
+      setPieces(prev => prev.map(p => p.index === draggedPiece.index ? { ...p, found: true } : p));
+      const newSlots = [...slots];
+      newSlots[slotIdx] = draggedPiece.char.toUpperCase();
+      setSlots(newSlots);
 
-      if (newNext === chars.length) {
-        recordResult(currentWord!.id, true);
+      // Check completion
+      const filledCount = newSlots.filter(Boolean).length;
+      if (filledCount === chars.length) {
+        recordResult(currentWord.id, true);
         setScore(s => s + 10);
         setCorrectCount(c => c + 1);
         setShowChest(true);
@@ -213,11 +256,10 @@ const GardenTreasureGame = () => {
     } else {
       duckBgm();
       playWrong();
-      recordResult(currentWord!.id, false);
     }
-  }, [nextExpected, chars, currentWord, duckBgm, playCorrect, playWrong, recordResult]);
+    setDraggedPiece(null);
+  }, [draggedPiece, currentWord, chars, slots, duckBgm, playCorrect, playWrong, recordResult]);
 
-  /* ─── After chest → auto-transition ─── */
   const handleChestDone = useCallback(() => {
     setShowChest(false);
     if (currentIdx + 1 < words.length) {
@@ -238,7 +280,7 @@ const GardenTreasureGame = () => {
         <motion.div className="relative z-10 flex flex-col items-center gap-6 p-8 rounded-3xl bg-black/30 backdrop-blur-md border border-white/10" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
           <div className="text-6xl">🪄</div>
           <h1 className="text-3xl font-display font-bold text-yellow-300 drop-shadow-lg">Magical Garden</h1>
-          <p className="text-white/80 text-center max-w-sm">Use your magic wand to find hidden letters scattered in the garden. Click them in the right order to spell each word!</p>
+          <p className="text-white/80 text-center max-w-sm">Use your magic wand to find hidden letters. Drag them to the correct slots to spell each word!</p>
           <Button onClick={() => { setGameStarted(true); bgmRef.current?.play().catch(() => {}); setBgmPlaying(true); }} className="px-8 py-3 text-lg font-bold bg-gradient-to-r from-yellow-400 to-orange-500 text-black rounded-xl hover:from-yellow-300 hover:to-orange-400">
             ✨ Start Adventure
           </Button>
@@ -260,7 +302,6 @@ const GardenTreasureGame = () => {
       <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" src="/media/gdvideo.mp4" />
       <div className="absolute inset-0 bg-black/20" />
 
-      {/* Controls */}
       <div className="absolute top-4 left-4 z-40 flex gap-2">
         <Button variant="ghost" size="icon" onClick={() => navigate('/games')} className="bg-black/30 text-white hover:bg-black/50"><ArrowLeft className="w-5 h-5" /></Button>
         <Button variant="ghost" size="icon" onClick={toggleBgm} className="bg-black/30 text-white hover:bg-black/50">
@@ -276,9 +317,9 @@ const GardenTreasureGame = () => {
         🔍 Find: <span className="text-yellow-300 font-bold tracking-wider">{currentWord?.description || `${chars.length} letters`}</span>
       </div>
 
-      <CollectionBar collected={collected} total={chars.length} />
+      <SlotBar slots={slots} total={chars.length} onDropSlot={handleDropSlot} />
 
-      {/* Scattered pieces hidden behind garden assets */}
+      {/* Scattered pieces */}
       <div className="relative z-20 w-full h-full" style={{ minHeight: '70vh' }}>
         <AnimatePresence>
           {pieces.filter(p => !p.found).map(piece => (
@@ -292,32 +333,35 @@ const GardenTreasureGame = () => {
               transition={{ type: 'spring', stiffness: 300, damping: 20 }}
               onMouseEnter={() => handlePieceHover(piece.index, true)}
               onMouseLeave={() => handlePieceHover(piece.index, false)}
-              onClick={() => handlePieceClick(piece)}
+              draggable
+              onDragStart={() => handleDragStart(piece)}
             >
-              {/* Garden asset covering the letter */}
               <div className="relative" style={{ width: PIECE_SIZE + 20, height: PIECE_SIZE + 20 }}>
-                {/* The letter — peeking out 10-15% from behind the asset */}
+                {/* Letter: 50% blur/transparent until hovered */}
                 <div
                   className="absolute flex items-center justify-center rounded-lg font-bold text-xl select-none"
                   style={{
                     width: PIECE_SIZE,
                     height: PIECE_SIZE,
-                    left: 5,
-                    top: 5,
-                    background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                    left: 5, top: 5,
+                    background: piece.isDistractor
+                      ? 'linear-gradient(135deg, #888, #666)'
+                      : 'linear-gradient(135deg, #FFD700, #FFA500)',
                     color: '#1a1a2e',
-                    opacity: 1,
+                    opacity: piece.hovered ? 1 : 0.5,
+                    filter: piece.hovered ? 'none' : 'blur(1.5px)',
                     boxShadow: piece.hovered
                       ? '0 0 20px rgba(255,215,0,0.8), 0 0 40px rgba(255,215,0,0.4)'
                       : '0 2px 8px rgba(0,0,0,0.3)',
                     zIndex: 1,
+                    transition: 'opacity 0.3s, filter 0.3s',
                   }}
                 >
                   {piece.char.toUpperCase()}
                 </div>
-                {/* Garden element covering most of the letter */}
+                {/* Garden element covering letter */}
                 <motion.div
-                  className="absolute select-none"
+                  className="absolute select-none pointer-events-none"
                   style={{
                     fontSize: piece.hovered ? '2.5rem' : '3.5rem',
                     left: piece.hovered ? 15 : 0,
@@ -327,7 +371,6 @@ const GardenTreasureGame = () => {
                     transform: `rotate(${piece.assetRotation}deg)`,
                     transition: 'all 0.3s ease',
                   }}
-                  whileTap={{ scale: 0.85 }}
                 >
                   {piece.asset}
                 </motion.div>
@@ -338,7 +381,7 @@ const GardenTreasureGame = () => {
       </div>
 
       <SparkleTrail sparkles={sparkles} />
-      <AnimatePresence>{showChest && <TreasureChest onDone={handleChestDone} />}</AnimatePresence>
+      <AnimatePresence>{showChest && <TreasureChest onNext={handleChestDone} />}</AnimatePresence>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Volume2 } from 'lucide-react';
 import { useGameWords, useRecordResult } from '@/hooks/useGameWords';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { GameResults } from '@/components/GameResults';
@@ -32,7 +33,6 @@ function playKnockSound(ctx: AudioContext, delay: number) {
   osc.start(t);
   osc.stop(t + 0.06);
 
-  // noise burst for wood texture
   const buf = ctx.createBuffer(1, ctx.sampleRate * 0.03, ctx.sampleRate);
   const d = buf.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
@@ -60,6 +60,15 @@ function playPopSound(ctx: AudioContext) {
   osc.stop(ctx.currentTime + 0.12);
 }
 
+function speakWord(word: string, gender: string) {
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  u.lang = 'en-US';
+  u.pitch = gender === 'male' ? 0.9 : 1.2;
+  u.rate = 0.9;
+  speechSynthesis.speak(u);
+}
+
 function speakLeuLeu() {
   const u = new SpeechSynthesisUtterance('Lêu lêu');
   u.lang = 'vi-VN';
@@ -81,7 +90,6 @@ const WoodpeckerGame = () => {
   const [wiggleId, setWiggleId] = useState<string | null>(null);
   const [popId, setPopId] = useState<string | null>(null);
 
-  // Custom cursor state
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
   const [cursorVisible, setCursorVisible] = useState(false);
@@ -95,6 +103,18 @@ const WoodpeckerGame = () => {
   }, []);
 
   const current = words[currentIndex];
+
+  // Auto-play word audio when new question appears
+  useEffect(() => {
+    if (current && !finished) {
+      const t = setTimeout(() => speakWord(current.word, current.voice_gender), 500);
+      return () => clearTimeout(t);
+    }
+  }, [currentIndex, current, finished]);
+
+  const handleReplay = useCallback(() => {
+    if (current) speakWord(current.word, current.voice_gender);
+  }, [current]);
 
   const spawnCaterpillars = useCallback(() => {
     if (!current || words.length < 2) return;
@@ -127,7 +147,6 @@ const WoodpeckerGame = () => {
   const doPeckAnimation = (): Promise<void> => {
     return new Promise((resolve) => {
       const ctx = getAudioCtx();
-      // 3 knocks at ~100ms intervals
       playKnockSound(ctx, 0);
       playKnockSound(ctx, 0.12);
       playKnockSound(ctx, 0.24);
@@ -151,7 +170,6 @@ const WoodpeckerGame = () => {
     setPecking(true);
     setPeckedId(cat.id);
 
-    // Pecking animation first
     await doPeckAnimation();
 
     const correct = cat.id === current.id;
@@ -160,12 +178,10 @@ const WoodpeckerGame = () => {
     setResults(newResults);
 
     if (correct) {
-      // Pop + disappear
       setPopId(cat.id);
       playPopSound(getAudioCtx());
       setTimeout(() => playCorrect(), 150);
     } else {
-      // Wiggle + "Lêu lêu"
       setWiggleId(cat.id);
       speakLeuLeu();
     }
@@ -218,12 +234,21 @@ const WoodpeckerGame = () => {
         animate={{ scale: 1, opacity: 1 }}
         className="bg-card rounded-2xl game-card-shadow p-4 text-center mb-4"
       >
-        {current.image_url ? (
-          <img src={current.image_url} alt="target" className="w-20 h-20 object-cover rounded-xl mx-auto mb-2" />
-        ) : (
-          <p className="text-muted-foreground mb-2">{current.description || 'Find the word!'}</p>
-        )}
-        <p className="text-sm font-semibold text-muted-foreground">Peck the correct caterpillar! 🐛</p>
+        <div className="flex items-center justify-center gap-3">
+          {current.image_url ? (
+            <img src={current.image_url} alt="target" className="w-20 h-20 object-cover rounded-xl" />
+          ) : (
+            <p className="text-muted-foreground">{current.description || 'Find the word!'}</p>
+          )}
+          <button
+            onClick={handleReplay}
+            className="p-2.5 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+            title="Play word audio"
+          >
+            <Volume2 className="w-5 h-5 text-primary" />
+          </button>
+        </div>
+        <p className="text-sm font-semibold text-muted-foreground mt-2">Peck the correct caterpillar! 🐛</p>
       </motion.div>
 
       {/* Tree with holes + custom cursor */}
@@ -235,16 +260,14 @@ const WoodpeckerGame = () => {
         className="relative rounded-2xl overflow-hidden border border-border select-none"
         style={{ height: 340, cursor: 'none', background: 'linear-gradient(to bottom, hsl(var(--muted) / 0.3), hsl(var(--muted) / 0.5))' }}
       >
-        {/* Tree trunk visual */}
         <div className="absolute inset-x-1/3 inset-y-0 rounded-t-3xl bg-muted/30" />
 
-        {/* Caterpillars in holes */}
         <AnimatePresence>
           {caterpillars.map((cat) => {
             const hole = HOLES[cat.holeIndex];
             const isPopped = cat.id === popId;
             const isWiggling = cat.id === wiggleId;
-            if (isPopped) return null; // disappeared
+            if (isPopped) return null;
             return (
               <motion.button
                 key={cat.id}
@@ -278,7 +301,6 @@ const WoodpeckerGame = () => {
           })}
         </AnimatePresence>
 
-        {/* Pop effect */}
         <AnimatePresence>
           {popId && (
             <motion.div
@@ -293,7 +315,6 @@ const WoodpeckerGame = () => {
           )}
         </AnimatePresence>
 
-        {/* Custom woodpecker cursor */}
         {cursorVisible && (
           <img
             src={woodpeckerImg}
@@ -303,10 +324,10 @@ const WoodpeckerGame = () => {
               width: 64,
               height: 64,
               objectFit: 'contain',
-              left: cursorPos.x - 8, // beak tip offset (top-left area)
+              left: cursorPos.x - 8,
               top: cursorPos.y - 4,
               transform: `rotate(${peckAngle}deg)`,
-              transformOrigin: '12% 8%', // pivot near beak
+              transformOrigin: '12% 8%',
               transition: 'transform 0.05s ease-out',
             }}
           />

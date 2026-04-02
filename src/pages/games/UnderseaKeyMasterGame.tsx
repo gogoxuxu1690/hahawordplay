@@ -13,8 +13,11 @@ import hahaImg from '@/assets/haha.jpg';
 
 const BGM_FULL = 0.3;
 const BGM_DUCK = 0.08;
+const SPARKLE_LIFETIME = 800;
 
 const KEY_CURSOR = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='8' cy='8' r='6' fill='none' stroke='%23FFD700' stroke-width='2'/%3E%3Ccircle cx='8' cy='8' r='2' fill='%23FFD700'/%3E%3Cline x1='14' y1='8' x2='28' y2='8' stroke='%23FFD700' stroke-width='2.5' stroke-linecap='round'/%3E%3Cline x1='24' y1='8' x2='24' y2='14' stroke='%23FFD700' stroke-width='2' stroke-linecap='round'/%3E%3Cline x1='28' y1='8' x2='28' y2='12' stroke='%23FFD700' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") 8 8, auto`;
+
+interface Sparkle { id: number; x: number; y: number; born: number; color: string; }
 
 interface ChestItem {
   content: string;
@@ -23,6 +26,7 @@ interface ChestItem {
   y: number;
   state: 'closed' | 'open-correct' | 'open-wrong' | 'open-peek';
   revealed: boolean;
+  hovered: boolean;
 }
 
 function scatterChests(items: string[]): ChestItem[] {
@@ -34,14 +38,62 @@ function scatterChests(items: string[]): ChestItem[] {
     const col = index % cols;
     const row = Math.floor(index / cols);
     return {
-      content, index,
+      content: content.toUpperCase(), index,
       x: (col + 0.5) * cellW + (Math.random() - 0.5) * 30,
       y: 120 + (row + 0.5) * cellH + (Math.random() - 0.5) * 20,
       state: 'closed' as const,
       revealed: false,
+      hovered: false,
     };
   });
 }
+
+const SparkleTrail = ({ sparkles }: { sparkles: Sparkle[] }) => (
+  <div className="pointer-events-none fixed inset-0 z-[60] overflow-hidden">
+    {sparkles.map(s => {
+      const age = (Date.now() - s.born) / SPARKLE_LIFETIME;
+      return (
+        <div key={s.id} className="absolute rounded-full" style={{
+          left: s.x - 3, top: s.y - 3,
+          width: 6 * (1 - age), height: 6 * (1 - age),
+          background: s.color, opacity: 1 - age,
+          boxShadow: `0 0 ${5 + 3 * (1 - age)}px ${s.color}`,
+        }} />
+      );
+    })}
+  </div>
+);
+
+/* Slot bar with drag-and-drop */
+const SlotBar = ({ slots, total, onDropSlot }: { slots: (string | null)[]; total: number; onDropSlot: (slotIdx: number) => void }) => (
+  <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 px-4 py-3 rounded-2xl bg-black/40 backdrop-blur-md border border-white/20 min-w-[200px] flex-wrap">
+    {Array.from({ length: total }).map((_, i) => (
+      <motion.div
+        key={i}
+        className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-bold"
+        style={{
+          background: slots[i] ? 'linear-gradient(135deg, #00CED1, #0099CC)' : 'rgba(255,255,255,0.1)',
+          color: slots[i] ? '#fff' : 'rgba(255,255,255,0.3)',
+          border: slots[i] ? '2px solid #00CED1' : '1px dashed rgba(255,255,255,0.2)',
+          minWidth: 36,
+          cursor: !slots[i] ? 'pointer' : 'default',
+        }}
+        onDragOver={e => { e.preventDefault(); e.currentTarget.style.transform = 'scale(1.15)'; }}
+        onDragLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+        onDrop={e => {
+          e.preventDefault();
+          e.currentTarget.style.transform = 'scale(1)';
+          onDropSlot(i);
+        }}
+        initial={slots[i] ? { scale: 0 } : {}}
+        animate={slots[i] ? { scale: 1 } : {}}
+        transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+      >
+        {slots[i] || '?'}
+      </motion.div>
+    ))}
+  </div>
+);
 
 const UnderseaKeyMasterGame = () => {
   const navigate = useNavigate();
@@ -55,7 +107,6 @@ const UnderseaKeyMasterGame = () => {
 
   const loading = isGrammar ? pairsLoading : wordsLoading;
 
-  // Build puzzle items
   const puzzles = useMemo(() => {
     if (isGrammar) {
       return pairs.map(p => ({
@@ -73,8 +124,7 @@ const UnderseaKeyMasterGame = () => {
 
   const [currentIdx, setCurrentIdx] = useState(0);
   const [chests, setChests] = useState<ChestItem[]>([]);
-  const [collected, setCollected] = useState<string[]>([]);
-  const [nextExpected, setNextExpected] = useState(0);
+  const [slots, setSlots] = useState<(string | null)[]>([]);
   const [showWrongFace, setShowWrongFace] = useState(false);
   const [showVictory, setShowVictory] = useState(false);
   const [score, setScore] = useState(0);
@@ -83,8 +133,12 @@ const UnderseaKeyMasterGame = () => {
   const [bgmPlaying, setBgmPlaying] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [sparkles, setSparkles] = useState<Sparkle[]>([]);
+  const [draggedChest, setDraggedChest] = useState<ChestItem | null>(null);
 
   const bgmRef = useRef<HTMLAudioElement | null>(null);
+  const sparkleId = useRef(0);
+  const animFrameRef = useRef<number>(0);
 
   const currentPuzzle = puzzles[currentIdx];
 
@@ -109,36 +163,70 @@ const UnderseaKeyMasterGame = () => {
     }
   }, [bgmPlaying]);
 
+  // Sparkle cleanup
+  useEffect(() => {
+    const tick = () => {
+      setSparkles(prev => prev.filter(s => Date.now() - s.born < SPARKLE_LIFETIME));
+      animFrameRef.current = requestAnimationFrame(tick);
+    };
+    animFrameRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animFrameRef.current);
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (getGlobalMuted()) return;
+    const colors = ['#FFD700', '#00CED1', '#FFA500', '#FFFACD'];
+    setSparkles(prev => [...prev.slice(-30), {
+      id: sparkleId.current++, x: e.clientX, y: e.clientY, born: Date.now(),
+      color: colors[Math.floor(Math.random() * colors.length)],
+    }]);
+  }, []);
+
   // Setup round
   useEffect(() => {
     if (!currentPuzzle || !gameStarted) return;
-    // Shuffle pieces for chest placement
     const shuffled = [...currentPuzzle.pieces].sort(() => Math.random() - 0.5);
     setChests(scatterChests(shuffled));
-    setCollected([]);
-    setNextExpected(0);
+    setSlots(new Array(currentPuzzle.pieces.length).fill(null));
     setShowVictory(false);
+    setDraggedChest(null);
   }, [currentIdx, currentPuzzle, gameStarted]);
+
+  const handleChestHover = useCallback((index: number, hovered: boolean) => {
+    setChests(prev => prev.map(c => c.index === index ? { ...c, hovered } : c));
+  }, []);
 
   const handleChestClick = useCallback((chest: ChestItem) => {
     if (chest.state === 'open-correct' || processing) return;
-    const expected = currentPuzzle?.pieces[nextExpected];
-    if (!expected) return;
+    // Open to peek - user will then need to drag
+    setChests(prev => prev.map(c => c.index === chest.index ? { ...c, state: 'open-peek', revealed: true } : c));
+  }, [processing]);
 
+  const handleDragStart = useCallback((chest: ChestItem) => {
+    if (chest.state === 'open-correct' || processing) return;
+    // Open the chest to show content
+    setChests(prev => prev.map(c => c.index === chest.index ? { ...c, state: 'open-peek', revealed: true } : c));
+    setDraggedChest(chest);
+  }, [processing]);
+
+  const handleDropSlot = useCallback((slotIdx: number) => {
+    if (!draggedChest || !currentPuzzle || processing) return;
     setProcessing(true);
     duckBgm();
 
-    if (chest.content.toLowerCase() === expected.toLowerCase()) {
+    const expected = currentPuzzle.pieces[slotIdx]?.toUpperCase();
+    if (draggedChest.content.toUpperCase() === expected && !slots[slotIdx]) {
       // Correct!
       playCorrect();
-      setChests(prev => prev.map(c => c.index === chest.index ? { ...c, state: 'open-correct', revealed: true } : c));
-      setCollected(prev => [...prev, chest.content]);
-      const newNext = nextExpected + 1;
-      setNextExpected(newNext);
+      setChests(prev => prev.map(c => c.index === draggedChest.index ? { ...c, state: 'open-correct' } : c));
+      const newSlots = [...slots];
+      newSlots[slotIdx] = draggedChest.content.toUpperCase();
+      setSlots(newSlots);
       setProcessing(false);
 
-      if (newNext === currentPuzzle!.pieces.length) {
-        if (!isGrammar) recordResult(currentPuzzle!.id, true);
+      const filledCount = newSlots.filter(Boolean).length;
+      if (filledCount === currentPuzzle.pieces.length) {
+        if (!isGrammar) recordResult(currentPuzzle.id, true);
         setScore(s => s + 10);
         setCorrectCount(c => c + 1);
         setShowVictory(true);
@@ -155,18 +243,22 @@ const UnderseaKeyMasterGame = () => {
         }, 2500);
       }
     } else {
-      // Wrong — show content briefly, show haha face, then close
+      // Wrong — close chest after showing, memory mechanic
       playWrong();
-      if (!isGrammar) recordResult(currentPuzzle!.id, false);
-      setChests(prev => prev.map(c => c.index === chest.index ? { ...c, state: 'open-peek' } : c));
+      if (!isGrammar) recordResult(currentPuzzle.id, false);
       setShowWrongFace(true);
       setTimeout(() => {
         setShowWrongFace(false);
-        setChests(prev => prev.map(c => c.index === chest.index ? { ...c, state: 'closed' } : c));
+        setChests(prev => prev.map(c =>
+          c.index === draggedChest.index && c.state !== 'open-correct'
+            ? { ...c, state: 'closed' }
+            : c
+        ));
         setProcessing(false);
       }, 2000);
     }
-  }, [currentPuzzle, nextExpected, processing, duckBgm, playCorrect, playWrong, recordResult, isGrammar, currentIdx, puzzles.length, correctCount, score, saveSession, playFinish]);
+    setDraggedChest(null);
+  }, [draggedChest, currentPuzzle, slots, processing, duckBgm, playCorrect, playWrong, recordResult, isGrammar, currentIdx, puzzles.length, correctCount, score, saveSession, playFinish]);
 
   if (!gameStarted) {
     return (
@@ -176,7 +268,7 @@ const UnderseaKeyMasterGame = () => {
         <motion.div className="relative z-10 flex flex-col items-center gap-6 p-8 rounded-3xl bg-black/30 backdrop-blur-md border border-white/10" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
           <div className="text-6xl">🔑</div>
           <h1 className="text-3xl font-display font-bold text-cyan-300 drop-shadow-lg">Undersea Key Master</h1>
-          <p className="text-white/80 text-center max-w-sm">Use your golden key to unlock treasure chests! Find the right pieces in order, but remember what's inside — wrong chests close again!</p>
+          <p className="text-white/80 text-center max-w-sm">Use your golden key to unlock treasure chests! Click to peek, then drag letters to the correct slots. Wrong guesses close the chest — remember what was inside!</p>
           <Button onClick={() => { setGameStarted(true); bgmRef.current?.play().catch(() => {}); setBgmPlaying(true); }}
             className="px-8 py-3 text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-500 text-white rounded-xl hover:from-cyan-300 hover:to-blue-400">
             🔑 Start Diving
@@ -195,11 +287,10 @@ const UnderseaKeyMasterGame = () => {
   }
 
   return (
-    <div className="relative min-h-[80vh] overflow-hidden rounded-2xl select-none" style={{ cursor: KEY_CURSOR }}>
+    <div className="relative min-h-[80vh] overflow-hidden rounded-2xl select-none" style={{ cursor: KEY_CURSOR }} onMouseMove={handleMouseMove}>
       <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" src="/media/sea.mp4" />
       <div className="absolute inset-0 bg-blue-900/30" />
 
-      {/* Controls */}
       <div className="absolute top-4 left-4 z-40 flex gap-2">
         <Button variant="ghost" size="icon" onClick={() => navigate('/games')} className="bg-black/30 text-white hover:bg-black/50"><ArrowLeft className="w-5 h-5" /></Button>
         <Button variant="ghost" size="icon" onClick={toggleBgm} className="bg-black/30 text-white hover:bg-black/50">
@@ -211,29 +302,11 @@ const UnderseaKeyMasterGame = () => {
         🔑 {score} &nbsp;|&nbsp; {currentIdx + 1}/{puzzles.length}
       </div>
 
-      {/* Collection bar */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 px-4 py-3 rounded-2xl bg-black/40 backdrop-blur-md border border-white/20 min-w-[200px] flex-wrap">
-        {currentPuzzle && currentPuzzle.pieces.map((_, i) => (
-          <motion.span key={i} className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-bold"
-            style={{
-              background: collected[i] ? 'linear-gradient(135deg, #00CED1, #0099CC)' : 'rgba(255,255,255,0.1)',
-              color: collected[i] ? '#fff' : 'rgba(255,255,255,0.3)',
-              border: collected[i] ? '2px solid #00CED1' : '1px dashed rgba(255,255,255,0.2)',
-              minWidth: 36,
-            }}
-            initial={collected[i] ? { scale: 0 } : {}}
-            animate={collected[i] ? { scale: 1 } : {}}
-            transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-          >
-            {collected[i] || '?'}
-          </motion.span>
-        ))}
-      </div>
-
-      {/* Hint */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 px-6 py-2 rounded-xl bg-black/40 backdrop-blur text-white/80 text-sm font-medium">
         🔍 Find: <span className="text-cyan-300 font-bold">{currentPuzzle?.hint}</span>
       </div>
+
+      <SlotBar slots={slots} total={currentPuzzle?.pieces.length || 0} onDropSlot={handleDropSlot} />
 
       {/* Chests */}
       <div className="relative z-20 w-full h-full" style={{ minHeight: '70vh' }}>
@@ -246,7 +319,11 @@ const UnderseaKeyMasterGame = () => {
               initial={{ scale: 0, y: 50 }}
               animate={{ scale: 1, y: 0 }}
               transition={{ type: 'spring', delay: chest.index * 0.05 }}
+              onMouseEnter={() => handleChestHover(chest.index, true)}
+              onMouseLeave={() => handleChestHover(chest.index, false)}
               onClick={() => handleChestClick(chest)}
+              draggable={chest.state !== 'open-correct'}
+              onDragStart={() => handleDragStart(chest)}
             >
               <AnimatePresence mode="wait">
                 {(chest.state === 'open-correct' || chest.state === 'open-peek') && (
@@ -272,8 +349,11 @@ const UnderseaKeyMasterGame = () => {
                 alt="chest"
                 className="w-20 h-16 object-contain drop-shadow-lg"
                 style={{
-                  filter: chest.state === 'open-correct' ? 'brightness(1.3) saturate(0.5)' : 'none',
-                  opacity: chest.state === 'open-correct' ? 0.5 : 1,
+                  filter: chest.state === 'open-correct'
+                    ? 'brightness(1.3) saturate(0.5)'
+                    : chest.hovered ? 'none' : 'blur(2px) brightness(0.7)',
+                  opacity: chest.state === 'open-correct' ? 0.5 : chest.hovered ? 1 : 0.5,
+                  transition: 'filter 0.3s, opacity 0.3s',
                 }}
                 animate={{
                   rotate: chest.state === 'open-peek' ? [0, -5, 5, -5, 0] : 0,
@@ -287,25 +367,16 @@ const UnderseaKeyMasterGame = () => {
         </AnimatePresence>
       </div>
 
+      {/* Sparkle trail */}
+      <SparkleTrail sparkles={sparkles} />
+
       {/* Wrong face overlay */}
       <AnimatePresence>
         {showWrongFace && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="relative"
-              animate={{ rotate: [0, -15, 15, -15, 15, 0] }}
-              transition={{ duration: 1, repeat: 1 }}
-            >
+          <motion.div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="relative" animate={{ rotate: [0, -15, 15, -15, 15, 0] }} transition={{ duration: 1, repeat: 1 }}>
               <img src={hahaImg} alt="wrong" className="w-32 h-32 rounded-full object-cover border-4 border-red-400 shadow-2xl" />
-              <motion.div
-                className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-red-500 text-white px-4 py-1 rounded-full font-bold text-sm whitespace-nowrap"
-                initial={{ scale: 0 }} animate={{ scale: 1 }}
-              >
+              <motion.div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-red-500 text-white px-4 py-1 rounded-full font-bold text-sm whitespace-nowrap" initial={{ scale: 0 }} animate={{ scale: 1 }}>
                 Lêu lêu! 😜
               </motion.div>
             </motion.div>
