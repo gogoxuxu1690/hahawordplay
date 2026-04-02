@@ -1,10 +1,20 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { Volume2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useGameWords, useRecordResult } from '@/hooks/useGameWords';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { GameResults } from '@/components/GameResults';
+
+function speakWord(word: string, gender: string) {
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  u.lang = 'en-US';
+  u.pitch = gender === 'male' ? 0.9 : 1.2;
+  u.rate = 0.9;
+  speechSynthesis.speak(u);
+}
 
 function hideChars(word: string): { display: string; hidden: number[] } {
   const chars = word.split('');
@@ -31,6 +41,18 @@ const FillBlanksGame = () => {
 
   const current = words[currentIndex];
   const puzzle = useMemo(() => current ? hideChars(current.word) : null, [current]);
+
+  // Auto-play word audio when new question appears
+  useEffect(() => {
+    if (current && showResult === null) {
+      const t = setTimeout(() => speakWord(current.word, current.voice_gender), 400);
+      return () => clearTimeout(t);
+    }
+  }, [currentIndex, current]);
+
+  const handleReplay = useCallback(() => {
+    if (current) speakWord(current.word, current.voice_gender);
+  }, [current]);
 
   const checkAnswer = async () => {
     if (!current || showResult !== null) return;
@@ -75,7 +97,16 @@ const FillBlanksGame = () => {
 
       <motion.div key={currentIndex} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <div className="bg-card rounded-2xl game-card-shadow p-8 text-center mb-6">
-          {current.image_url && <img src={current.image_url} alt="?" className="w-32 h-32 object-cover rounded-2xl mx-auto mb-4" />}
+          <div className="flex items-center justify-center gap-3 mb-4">
+            {current.image_url && <img src={current.image_url} alt="?" className="w-32 h-32 object-cover rounded-2xl" />}
+            <button
+              onClick={handleReplay}
+              className="p-3 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+              title="Play word audio"
+            >
+              <Volume2 className="w-6 h-6 text-primary" />
+            </button>
+          </div>
           <p className="text-3xl font-display font-bold text-foreground tracking-widest">{puzzle?.display}</p>
           {current.description && <p className="text-sm text-muted-foreground mt-3">{current.description}</p>}
         </div>
