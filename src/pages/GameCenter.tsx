@@ -55,7 +55,7 @@ const GameCenter = () => {
   const [pairCount, setPairCount] = useState(0);
 
   useEffect(() => {
-    supabase.from('groups').select('*').order('created_at').then(({ data }) => setGroups(data || []));
+    supabase.from('groups').select('*').order('sort_order').then(({ data }) => setGroups(data || []));
     supabase.from('grammar_groups').select('*').order('created_at').then(({ data }) => setGrammarGroups(data || []));
   }, []);
 
