@@ -367,9 +367,7 @@ const GardenTreasureGame = () => {
                       width: PIECE_SIZE,
                       height: PIECE_SIZE,
                       left: 5, top: 5,
-                      background: piece.isDistractor
-                        ? 'linear-gradient(135deg, #888, #666)'
-                        : 'linear-gradient(135deg, #FFD700, #FFA500)',
+                      background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                       color: '#1a1a2e',
                       opacity: piece.hovered ? 1 : 0.6,
                       filter: piece.hovered ? 'none' : 'blur(1.5px)',
