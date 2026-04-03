@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Edit2, Volume2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Edit2, Volume2, ChevronDown, ChevronRight, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,14 +8,36 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { toast as sonnerToast } from 'sonner';
 import GroupImagePicker from '@/components/GroupImagePicker';
 import WordImagePicker from '@/components/WordImagePicker';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Group {
   id: string;
   name: string;
   emoji: string;
   icon_name: string | null;
+  sort_order: number;
 }
 
 interface Word {
@@ -34,12 +56,115 @@ const GroupIcon = ({ group, size = 24 }: { group: Group; size?: number }) => {
   return <span className="text-2xl">{group.emoji || '📚'}</span>;
 };
 
+interface SortableGroupProps {
+  group: Group;
+  groupWords: Word[];
+  isExpanded: boolean;
+  isDragging: boolean;
+  onToggleExpand: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onAddWord: () => void;
+  onEditWord: (word: Word) => void;
+  onDeleteWord: (id: string) => void;
+  onSpeak: (text: string, gender: string) => void;
+}
+
+const SortableGroupCard = ({
+  group, groupWords, isExpanded, isDragging, onToggleExpand,
+  onEdit, onDelete, onAddWord, onEditWord, onDeleteWord, onSpeak,
+}: SortableGroupProps) => {
+  const {
+    attributes, listeners, setNodeRef, transform, transition, isDragging: isSortableDragging,
+  } = useSortable({ id: group.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isSortableDragging ? 0.4 : 1,
+    zIndex: isSortableDragging ? 50 : 'auto',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style as React.CSSProperties} className="bg-card rounded-2xl game-card-shadow overflow-hidden">
+      <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/30 transition-colors">
+        <div className="flex items-center gap-3 flex-1 min-w-0" onClick={onToggleExpand}>
+          {/* Drag handle */}
+          <button
+            {...attributes}
+            {...listeners}
+            className="touch-none p-1 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors cursor-grab active:cursor-grabbing"
+            onClick={e => e.stopPropagation()}
+            aria-label="Drag to reorder"
+          >
+            <GripVertical className="w-5 h-5" />
+          </button>
+          <GroupIcon group={group} size={24} />
+          <div>
+            <h3 className="font-display font-bold text-foreground">{group.name}</h3>
+            <p className="text-sm text-muted-foreground">{groupWords.length} words</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="rounded-xl" onClick={e => { e.stopPropagation(); onEdit(); }}>
+            <Edit2 className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="sm" className="rounded-xl text-destructive" onClick={e => { e.stopPropagation(); onDelete(); }}>
+            <Trash2 className="w-4 h-4" />
+          </Button>
+          <div onClick={onToggleExpand} className="cursor-pointer">
+            {isExpanded ? <ChevronDown className="w-5 h-5 text-muted-foreground" /> : <ChevronRight className="w-5 h-5 text-muted-foreground" />}
+          </div>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="border-t"
+          >
+            <div className="p-4 space-y-3">
+              {groupWords.map(word => (
+                <div key={word.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
+                  {word.image_url && (
+                    <img src={word.image_url} alt={word.word} className="w-12 h-12 rounded-lg object-cover" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-foreground">{word.word}</p>
+                    {word.description && <p className="text-sm text-muted-foreground truncate">{word.description}</p>}
+                  </div>
+                  <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => onSpeak(word.word, word.voice_gender)}>
+                    <Volume2 className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => onEditWord(word)}>
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="rounded-xl text-destructive" onClick={() => onDeleteWord(word.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button variant="outline" className="w-full rounded-xl gap-2" onClick={onAddWord}>
+                <Plus className="w-4 h-4" /> Add Word
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 const ManageWords = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [groups, setGroups] = useState<Group[]>([]);
   const [words, setWords] = useState<Word[]>([]);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   // Group form
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
@@ -56,12 +181,18 @@ const ManageWords = () => {
   const [wordVoice, setWordVoice] = useState('female');
   const [wordGroupId, setWordGroupId] = useState('');
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
   const fetchData = async () => {
     const [{ data: g }, { data: w }] = await Promise.all([
-      supabase.from('groups').select('*').order('created_at'),
+      supabase.from('groups').select('*').order('sort_order'),
       supabase.from('words').select('*').order('created_at'),
     ]);
-    setGroups(g || []);
+    setGroups((g as Group[]) || []);
     setWords(w || []);
   };
 
@@ -85,7 +216,8 @@ const ManageWords = () => {
     if (editingGroup) {
       await supabase.from('groups').update({ name: groupName, icon_name: groupIconName }).eq('id', editingGroup.id);
     } else {
-      await supabase.from('groups').insert({ name: groupName, icon_name: groupIconName, emoji: '📚', user_id: user!.id });
+      const maxOrder = groups.length > 0 ? Math.max(...groups.map(g => g.sort_order)) + 1 : 0;
+      await supabase.from('groups').insert({ name: groupName, icon_name: groupIconName, emoji: '📚', user_id: user!.id, sort_order: maxOrder });
     }
     setGroupDialogOpen(false);
     setEditingGroup(null);
@@ -146,6 +278,32 @@ const ManageWords = () => {
     toast({ title: 'Word deleted' });
   };
 
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  }, []);
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = groups.findIndex(g => g.id === active.id);
+    const newIndex = groups.findIndex(g => g.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(groups, oldIndex, newIndex);
+    setGroups(reordered);
+
+    // Persist new order
+    const updates = reordered.map((g, i) =>
+      supabase.from('groups').update({ sort_order: i }).eq('id', g.id)
+    );
+    await Promise.all(updates);
+    sonnerToast.success('Group order updated!');
+  }, [groups]);
+
+  const activeGroup = activeId ? groups.find(g => g.id === activeId) : null;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
@@ -159,7 +317,7 @@ const ManageWords = () => {
               <Plus className="w-4 h-4" /> New Group
             </Button>
           </DialogTrigger>
-           <DialogContent className="rounded-2xl max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogContent className="rounded-2xl max-w-md max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-display">{editingGroup ? 'Edit Group' : 'New Group'}</DialogTitle>
             </DialogHeader>
@@ -185,80 +343,49 @@ const ManageWords = () => {
           <p className="text-muted-foreground">Create your first vocabulary group to get started!</p>
         </motion.div>
       ) : (
-        <div className="space-y-4">
-          {groups.map((group, i) => {
-            const groupWords = words.filter(w => w.group_id === group.id);
-            const isExpanded = expandedGroup === group.id;
-            return (
-              <motion.div
-                key={group.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="bg-card rounded-2xl game-card-shadow overflow-hidden"
-              >
-                <div
-                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/30 transition-colors"
-                  onClick={() => setExpandedGroup(isExpanded ? null : group.id)}
-                >
-                  <div className="flex items-center gap-3">
-                    <GroupIcon group={group} size={24} />
-                    <div>
-                      <h3 className="font-display font-bold text-foreground">{group.name}</h3>
-                      <p className="text-sm text-muted-foreground">{groupWords.length} words</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" className="rounded-xl" onClick={e => { e.stopPropagation(); setEditingGroup(group); setGroupName(group.name); setGroupIconName(group.icon_name || 'Book'); setGroupDialogOpen(true); }}>
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="rounded-xl text-destructive" onClick={e => { e.stopPropagation(); deleteGroup(group.id); }}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                    {isExpanded ? <ChevronDown className="w-5 h-5 text-muted-foreground" /> : <ChevronRight className="w-5 h-5 text-muted-foreground" />}
-                  </div>
-                </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={groups.map(g => g.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-4">
+              {groups.map(group => {
+                const groupWords = words.filter(w => w.group_id === group.id);
+                const isExpanded = expandedGroup === group.id;
+                return (
+                  <SortableGroupCard
+                    key={group.id}
+                    group={group}
+                    groupWords={groupWords}
+                    isExpanded={isExpanded}
+                    isDragging={activeId === group.id}
+                    onToggleExpand={() => setExpandedGroup(isExpanded ? null : group.id)}
+                    onEdit={() => { setEditingGroup(group); setGroupName(group.name); setGroupIconName(group.icon_name || 'Book'); setGroupDialogOpen(true); }}
+                    onDelete={() => deleteGroup(group.id)}
+                    onAddWord={() => openWordDialog(group.id)}
+                    onEditWord={(word) => openWordDialog(group.id, word)}
+                    onDeleteWord={deleteWord}
+                    onSpeak={speak}
+                  />
+                );
+              })}
+            </div>
+          </SortableContext>
 
-                <AnimatePresence>
-                  {isExpanded && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="border-t"
-                    >
-                      <div className="p-4 space-y-3">
-                        {groupWords.map(word => (
-                          <div key={word.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
-                            {word.image_url && (
-                              <img src={word.image_url} alt={word.word} className="w-12 h-12 rounded-lg object-cover" />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className="font-bold text-foreground">{word.word}</p>
-                              {word.description && <p className="text-sm text-muted-foreground truncate">{word.description}</p>}
-                            </div>
-                            <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => speak(word.word, word.voice_gender)}>
-                              <Volume2 className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => openWordDialog(group.id, word)}>
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="rounded-xl text-destructive" onClick={() => deleteWord(word.id)}>
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ))}
-                        <Button variant="outline" className="w-full rounded-xl gap-2" onClick={() => openWordDialog(group.id)}>
-                          <Plus className="w-4 h-4" /> Add Word
-                        </Button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            );
-          })}
-        </div>
+          <DragOverlay>
+            {activeGroup ? (
+              <div className="bg-card rounded-2xl game-card-shadow p-4 opacity-90 shadow-xl border-2 border-primary/30">
+                <div className="flex items-center gap-3">
+                  <GripVertical className="w-5 h-5 text-muted-foreground" />
+                  <GroupIcon group={activeGroup} size={24} />
+                  <h3 className="font-display font-bold text-foreground">{activeGroup.name}</h3>
+                </div>
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       )}
 
       {/* Word Dialog */}
@@ -283,20 +410,10 @@ const ManageWords = () => {
             <div className="space-y-2">
               <Label>Voice</Label>
               <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={wordVoice === 'female' ? 'default' : 'outline'}
-                  className="flex-1 rounded-xl"
-                  onClick={() => setWordVoice('female')}
-                >
+                <Button type="button" variant={wordVoice === 'female' ? 'default' : 'outline'} className="flex-1 rounded-xl" onClick={() => setWordVoice('female')}>
                   👩 Female
                 </Button>
-                <Button
-                  type="button"
-                  variant={wordVoice === 'male' ? 'default' : 'outline'}
-                  className="flex-1 rounded-xl"
-                  onClick={() => setWordVoice('male')}
-                >
+                <Button type="button" variant={wordVoice === 'male' ? 'default' : 'outline'} className="flex-1 rounded-xl" onClick={() => setWordVoice('male')}>
                   👨 Male
                 </Button>
               </div>
