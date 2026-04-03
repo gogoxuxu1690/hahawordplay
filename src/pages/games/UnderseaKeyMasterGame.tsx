@@ -64,7 +64,6 @@ const SparkleTrail = ({ sparkles }: { sparkles: Sparkle[] }) => (
   </div>
 );
 
-/* Slot bar with drag-and-drop */
 const SlotBar = ({ slots, total, onDropSlot }: { slots: (string | null)[]; total: number; onDropSlot: (slotIdx: number) => void }) => (
   <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 px-4 py-3 rounded-2xl bg-black/40 backdrop-blur-md border border-white/20 min-w-[200px] flex-wrap">
     {Array.from({ length: total }).map((_, i) => (
@@ -76,13 +75,13 @@ const SlotBar = ({ slots, total, onDropSlot }: { slots: (string | null)[]; total
           color: slots[i] ? '#fff' : 'rgba(255,255,255,0.3)',
           border: slots[i] ? '2px solid #00CED1' : '1px dashed rgba(255,255,255,0.2)',
           minWidth: 36,
-          cursor: !slots[i] ? 'pointer' : 'default',
         }}
-        onDragOver={e => { e.preventDefault(); e.currentTarget.style.transform = 'scale(1.15)'; }}
-        onDragLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+        onDragOver={e => { e.preventDefault(); e.currentTarget.style.transform = 'scale(1.15)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(0,206,209,0.6)'; }}
+        onDragLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
         onDrop={e => {
           e.preventDefault();
           e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.boxShadow = 'none';
           onDropSlot(i);
         }}
         initial={slots[i] ? { scale: 0 } : {}}
@@ -134,7 +133,7 @@ const UnderseaKeyMasterGame = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [sparkles, setSparkles] = useState<Sparkle[]>([]);
-  const [draggedChest, setDraggedChest] = useState<ChestItem | null>(null);
+  const [draggedChestIndex, setDraggedChestIndex] = useState<number | null>(null);
 
   const bgmRef = useRef<HTMLAudioElement | null>(null);
   const sparkleId = useRef(0);
@@ -163,7 +162,6 @@ const UnderseaKeyMasterGame = () => {
     }
   }, [bgmPlaying]);
 
-  // Sparkle cleanup
   useEffect(() => {
     const tick = () => {
       setSparkles(prev => prev.filter(s => Date.now() - s.born < SPARKLE_LIFETIME));
@@ -182,14 +180,13 @@ const UnderseaKeyMasterGame = () => {
     }]);
   }, []);
 
-  // Setup round
   useEffect(() => {
     if (!currentPuzzle || !gameStarted) return;
     const shuffled = [...currentPuzzle.pieces].sort(() => Math.random() - 0.5);
     setChests(scatterChests(shuffled));
     setSlots(new Array(currentPuzzle.pieces.length).fill(null));
     setShowVictory(false);
-    setDraggedChest(null);
+    setDraggedChestIndex(null);
   }, [currentIdx, currentPuzzle, gameStarted]);
 
   const handleChestHover = useCallback((index: number, hovered: boolean) => {
@@ -198,25 +195,38 @@ const UnderseaKeyMasterGame = () => {
 
   const handleChestClick = useCallback((chest: ChestItem) => {
     if (chest.state === 'open-correct' || processing) return;
-    // Open to peek - user will then need to drag
     setChests(prev => prev.map(c => c.index === chest.index ? { ...c, state: 'open-peek', revealed: true } : c));
   }, [processing]);
 
-  const handleDragStart = useCallback((chest: ChestItem) => {
-    if (chest.state === 'open-correct' || processing) return;
+  const handleLetterDragStart = useCallback((e: React.DragEvent, chest: ChestItem) => {
+    if (chest.state === 'open-correct' || processing) {
+      e.preventDefault();
+      return;
+    }
     // Open the chest to show content
     setChests(prev => prev.map(c => c.index === chest.index ? { ...c, state: 'open-peek', revealed: true } : c));
-    setDraggedChest(chest);
+    setDraggedChestIndex(chest.index);
+
+    // Create a drag ghost showing ONLY the letter
+    const ghost = document.createElement('div');
+    ghost.style.cssText = 'width:44px;height:36px;background:linear-gradient(135deg,#00CED1,#0099CC);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:16px;color:white;position:absolute;top:-200px;';
+    ghost.textContent = chest.content;
+    document.body.appendChild(ghost);
+    e.dataTransfer.setDragImage(ghost, 22, 18);
+    setTimeout(() => document.body.removeChild(ghost), 0);
+    e.dataTransfer.effectAllowed = 'move';
   }, [processing]);
 
   const handleDropSlot = useCallback((slotIdx: number) => {
-    if (!draggedChest || !currentPuzzle || processing) return;
+    if (draggedChestIndex === null || !currentPuzzle || processing) return;
+    const draggedChest = chests.find(c => c.index === draggedChestIndex);
+    if (!draggedChest) return;
+
     setProcessing(true);
     duckBgm();
 
     const expected = currentPuzzle.pieces[slotIdx]?.toUpperCase();
     if (draggedChest.content.toUpperCase() === expected && !slots[slotIdx]) {
-      // Correct!
       playCorrect();
       setChests(prev => prev.map(c => c.index === draggedChest.index ? { ...c, state: 'open-correct' } : c));
       const newSlots = [...slots];
@@ -243,12 +253,12 @@ const UnderseaKeyMasterGame = () => {
         }, 2500);
       }
     } else {
-      // Wrong — close chest after showing, memory mechanic
       playWrong();
       if (!isGrammar) recordResult(currentPuzzle.id, false);
       setShowWrongFace(true);
       setTimeout(() => {
         setShowWrongFace(false);
+        // Close the chest — memory mechanic
         setChests(prev => prev.map(c =>
           c.index === draggedChest.index && c.state !== 'open-correct'
             ? { ...c, state: 'closed' }
@@ -257,8 +267,20 @@ const UnderseaKeyMasterGame = () => {
         setProcessing(false);
       }, 2000);
     }
-    setDraggedChest(null);
-  }, [draggedChest, currentPuzzle, slots, processing, duckBgm, playCorrect, playWrong, recordResult, isGrammar, currentIdx, puzzles.length, correctCount, score, saveSession, playFinish]);
+    setDraggedChestIndex(null);
+  }, [draggedChestIndex, chests, currentPuzzle, slots, processing, duckBgm, playCorrect, playWrong, recordResult, isGrammar, currentIdx, puzzles.length, correctCount, score, saveSession, playFinish]);
+
+  const handleDragEnd = useCallback(() => {
+    // If letter was dropped outside any slot, close the chest
+    if (draggedChestIndex !== null) {
+      setChests(prev => prev.map(c =>
+        c.index === draggedChestIndex && c.state === 'open-peek'
+          ? { ...c, state: 'closed' }
+          : c
+      ));
+      setDraggedChestIndex(null);
+    }
+  }, [draggedChestIndex]);
 
   if (!gameStarted) {
     return (
@@ -268,7 +290,7 @@ const UnderseaKeyMasterGame = () => {
         <motion.div className="relative z-10 flex flex-col items-center gap-6 p-8 rounded-3xl bg-black/30 backdrop-blur-md border border-white/10" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
           <div className="text-6xl">🔑</div>
           <h1 className="text-3xl font-display font-bold text-cyan-300 drop-shadow-lg">Undersea Key Master</h1>
-          <p className="text-white/80 text-center max-w-sm">Use your golden key to unlock treasure chests! Click to peek, then drag letters to the correct slots. Wrong guesses close the chest — remember what was inside!</p>
+          <p className="text-white/80 text-center max-w-sm">Use your golden key to unlock treasure chests! Click to peek, then drag the letter to the correct slot. Wrong guesses close the chest — remember what was inside!</p>
           <Button onClick={() => { setGameStarted(true); bgmRef.current?.play().catch(() => {}); setBgmPlaying(true); }}
             className="px-8 py-3 text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-500 text-white rounded-xl hover:from-cyan-300 hover:to-blue-400">
             🔑 Start Diving
@@ -308,66 +330,74 @@ const UnderseaKeyMasterGame = () => {
 
       <SlotBar slots={slots} total={currentPuzzle?.pieces.length || 0} onDropSlot={handleDropSlot} />
 
-      {/* Chests */}
+      {/* Chests - stationary, only letter drags */}
       <div className="relative z-20 w-full h-full" style={{ minHeight: '70vh' }}>
         <AnimatePresence>
-          {chests.map(chest => (
-            <motion.div
-              key={`${currentIdx}-${chest.index}`}
-              className="absolute flex flex-col items-center"
-              style={{ left: chest.x - 40, top: chest.y, cursor: KEY_CURSOR }}
-              initial={{ scale: 0, y: 50 }}
-              animate={{ scale: 1, y: 0 }}
-              transition={{ type: 'spring', delay: chest.index * 0.05 }}
-              onMouseEnter={() => handleChestHover(chest.index, true)}
-              onMouseLeave={() => handleChestHover(chest.index, false)}
-              onClick={() => handleChestClick(chest)}
-              draggable={chest.state !== 'open-correct'}
-              onDragStart={() => handleDragStart(chest)}
-            >
-              <AnimatePresence mode="wait">
-                {(chest.state === 'open-correct' || chest.state === 'open-peek') && (
-                  <motion.div
-                    key="content"
-                    className="mb-1 px-3 py-1 rounded-lg font-bold text-sm"
-                    style={{
-                      background: chest.state === 'open-correct'
-                        ? 'linear-gradient(135deg, #00CED1, #0099CC)'
-                        : 'linear-gradient(135deg, #FF6B6B, #ee5a24)',
-                      color: '#fff',
-                    }}
-                    initial={{ scale: 0, y: 10 }}
-                    animate={{ scale: 1, y: 0 }}
-                    exit={{ scale: 0, y: 10 }}
-                  >
-                    {chest.content}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <motion.img
-                src={chestImg}
-                alt="chest"
-                className="w-20 h-16 object-contain drop-shadow-lg"
-                style={{
-                  filter: chest.state === 'open-correct'
-                    ? 'brightness(1.3) saturate(0.5)'
-                    : chest.hovered ? 'none' : 'blur(2px) brightness(0.7)',
-                  opacity: chest.state === 'open-correct' ? 0.5 : chest.hovered ? 1 : 0.5,
-                  transition: 'filter 0.3s, opacity 0.3s',
-                }}
-                animate={{
-                  rotate: chest.state === 'open-peek' ? [0, -5, 5, -5, 0] : 0,
-                }}
-                transition={{ duration: 0.4 }}
-                whileHover={{ scale: chest.state === 'closed' ? 1.1 : 1, y: chest.state === 'closed' ? -5 : 0 }}
-                whileTap={{ scale: 0.9 }}
-              />
-            </motion.div>
-          ))}
+          {chests.map(chest => {
+            const isBeingDragged = draggedChestIndex === chest.index;
+            return (
+              <motion.div
+                key={`${currentIdx}-${chest.index}`}
+                className="absolute flex flex-col items-center"
+                style={{ left: chest.x - 40, top: chest.y, cursor: KEY_CURSOR }}
+                initial={{ scale: 0, y: 50 }}
+                animate={{ scale: 1, y: 0 }}
+                transition={{ type: 'spring', delay: chest.index * 0.05 }}
+                onMouseEnter={() => handleChestHover(chest.index, true)}
+                onMouseLeave={() => handleChestHover(chest.index, false)}
+                onClick={() => handleChestClick(chest)}
+              >
+                {/* Letter label - this is the draggable part */}
+                <AnimatePresence mode="wait">
+                  {(chest.state === 'open-correct' || chest.state === 'open-peek') && !isBeingDragged && (
+                    <motion.div
+                      key="content"
+                      className="mb-1 px-3 py-1 rounded-lg font-bold text-sm"
+                      style={{
+                        background: chest.state === 'open-correct'
+                          ? 'linear-gradient(135deg, #00CED1, #0099CC)'
+                          : 'linear-gradient(135deg, #FF6B6B, #ee5a24)',
+                        color: '#fff',
+                        cursor: chest.state === 'open-correct' ? 'default' : 'grab',
+                      }}
+                      initial={{ scale: 0, y: 10 }}
+                      animate={{ scale: 1, y: 0 }}
+                      exit={{ scale: 0, y: 10 }}
+                      draggable={chest.state !== 'open-correct'}
+                      onDragStart={(e) => handleLetterDragStart(e as unknown as React.DragEvent, chest)}
+                      onDragEnd={handleDragEnd}
+                    >
+                      {chest.content}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Chest image - NOT draggable, stays stationary */}
+                <motion.img
+                  src={chestImg}
+                  alt="chest"
+                  className="w-20 h-16 object-contain drop-shadow-lg"
+                  style={{
+                    filter: chest.state === 'open-correct'
+                      ? 'brightness(1.3) saturate(0.5)'
+                      : chest.hovered ? 'none' : 'blur(2px) brightness(0.7)',
+                    opacity: chest.state === 'open-correct' ? 0.5 : chest.hovered ? 1 : 0.5,
+                    transition: 'filter 0.3s, opacity 0.3s',
+                  }}
+                  animate={{
+                    rotate: chest.state === 'open-peek' ? [0, -5, 5, -5, 0] : 0,
+                  }}
+                  transition={{ duration: 0.4 }}
+                  whileHover={{ scale: chest.state === 'closed' ? 1.1 : 1, y: chest.state === 'closed' ? -5 : 0 }}
+                  whileTap={{ scale: 0.9 }}
+                  draggable={false}
+                />
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
       </div>
 
-      {/* Sparkle trail */}
       <SparkleTrail sparkles={sparkles} />
 
       {/* Wrong face overlay */}
