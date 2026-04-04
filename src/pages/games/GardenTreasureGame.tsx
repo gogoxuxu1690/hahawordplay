@@ -319,6 +319,8 @@ const GardenTreasureGame = () => {
   }
 
   return (
+    <>
+    <LandscapePrompt />
     <div ref={containerRef} className="relative min-h-[80vh] overflow-hidden rounded-2xl select-none" style={{ cursor: WAND_CURSOR }} onMouseMove={handleMouseMove}>
       <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" src="/media/gdvideo.mp4" />
       <div className="absolute inset-0 bg-black/20" />
