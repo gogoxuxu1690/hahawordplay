@@ -380,21 +380,7 @@ const GardenTreasureGame = () => {
                   >
                     {piece.char}
                   </div>
-                  {/* Garden asset overlay */}
-                  <motion.div
-                    className="absolute select-none pointer-events-none"
-                    style={{
-                      fontSize: piece.hovered ? '2rem' : '3rem',
-                      left: piece.hovered ? 20 : 0,
-                      top: piece.hovered ? 20 : -5,
-                      zIndex: piece.hovered ? 1 : 3,
-                      filter: piece.hovered ? 'brightness(1.3)' : 'none',
-                      transform: `rotate(${piece.assetRotation}deg)`,
-                      transition: 'all 0.3s ease',
-                    }}
-                  >
-                    {piece.asset}
-                  </motion.div>
+                {/* No garden asset overlay - letters are directly visible */}
                 </div>
               </motion.div>
             );
