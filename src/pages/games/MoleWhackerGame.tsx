@@ -451,6 +451,7 @@ const MoleWhackerGame = () => {
         })}
       </div>
     </div>
+    </>
   );
 };
 
