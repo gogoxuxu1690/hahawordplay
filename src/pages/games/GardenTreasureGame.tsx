@@ -372,8 +372,8 @@ const GardenTreasureGame = () => {
                       left: 5, top: 5,
                       background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                       color: '#1a1a2e',
-                      opacity: piece.hovered ? 1 : 0.6,
-                      filter: piece.hovered ? 'none' : 'blur(1.5px)',
+                      opacity: piece.hovered ? 1 : 0.4,
+                      filter: piece.hovered ? 'none' : 'blur(2px)',
                       boxShadow: piece.hovered
                         ? '0 0 20px rgba(255,215,0,0.8), 0 0 40px rgba(255,215,0,0.4)'
                         : '0 2px 8px rgba(0,0,0,0.3)',
