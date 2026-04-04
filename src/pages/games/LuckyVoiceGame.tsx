@@ -242,7 +242,8 @@ const LuckyVoiceGame = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto text-center">
+    <GameResponsiveWrapper requireLandscape={false}>
+    <div className="max-w-2xl mx-auto text-center px-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-display font-bold text-foreground">Lucky Voice 🎰🎤</h1>
