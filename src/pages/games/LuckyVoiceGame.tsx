@@ -151,7 +151,7 @@ const LuckyVoiceGame = () => {
       let bestText = '';
       for (let i = 0; i < event.results[0].length; i++) {
         const transcript = event.results[0][i].transcript;
-        const acc = similarity(transcript, targetWord.word);
+        const acc = advancedSimilarity(transcript, targetWord.word);
         if (acc > bestAcc) { bestAcc = acc; bestText = transcript; }
       }
       setSpokenText(bestText);
