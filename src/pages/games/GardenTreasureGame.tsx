@@ -7,6 +7,7 @@ import { useGameWords } from '@/hooks/useGameWords';
 import { useRecordResult } from '@/hooks/useGameWords';
 import { useGameSounds, getGlobalMuted } from '@/hooks/useGameSounds';
 import { GameResults } from '@/components/GameResults';
+import { LandscapePrompt } from '@/components/LandscapePrompt';
 
 const SPARKLE_LIFETIME = 1000;
 const PIECE_SIZE = 52;
@@ -318,6 +319,8 @@ const GardenTreasureGame = () => {
   }
 
   return (
+    <>
+    <LandscapePrompt />
     <div ref={containerRef} className="relative min-h-[80vh] overflow-hidden rounded-2xl select-none" style={{ cursor: WAND_CURSOR }} onMouseMove={handleMouseMove}>
       <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" src="/media/gdvideo.mp4" />
       <div className="absolute inset-0 bg-black/20" />
@@ -380,21 +383,7 @@ const GardenTreasureGame = () => {
                   >
                     {piece.char}
                   </div>
-                  {/* Garden asset overlay */}
-                  <motion.div
-                    className="absolute select-none pointer-events-none"
-                    style={{
-                      fontSize: piece.hovered ? '2rem' : '3rem',
-                      left: piece.hovered ? 20 : 0,
-                      top: piece.hovered ? 20 : -5,
-                      zIndex: piece.hovered ? 1 : 3,
-                      filter: piece.hovered ? 'brightness(1.3)' : 'none',
-                      transform: `rotate(${piece.assetRotation}deg)`,
-                      transition: 'all 0.3s ease',
-                    }}
-                  >
-                    {piece.asset}
-                  </motion.div>
+                {/* No garden asset overlay - letters are directly visible */}
                 </div>
               </motion.div>
             );
@@ -405,6 +394,7 @@ const GardenTreasureGame = () => {
       <SparkleTrail sparkles={sparkles} />
       <AnimatePresence>{showChest && <TreasureChest onNext={handleChestDone} />}</AnimatePresence>
     </div>
+    </>
   );
 };
 

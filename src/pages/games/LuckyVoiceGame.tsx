@@ -5,30 +5,8 @@ import { Button } from '@/components/ui/button';
 import { useGameWords, useRecordResult } from '@/hooks/useGameWords';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { GameResults } from '@/components/GameResults';
-
-/* ── helpers ─────────────────────────────────────────────── */
-
-function levenshtein(a: string, b: string): number {
-  const m = a.length, n = b.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
-  for (let i = 1; i <= m; i++)
-    for (let j = 1; j <= n; j++)
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-  return dp[m][n];
-}
-
-function similarity(spoken: string, target: string): number {
-  const a = spoken.toLowerCase().trim();
-  const b = target.toLowerCase().trim();
-  if (a === b) return 100;
-  if (!a) return 0;
-  const dist = levenshtein(a, b);
-  return Math.max(0, Math.round((1 - dist / Math.max(a.length, b.length)) * 100));
-}
+import { GameResponsiveWrapper } from '@/components/GameResponsiveWrapper';
+import { advancedSimilarity } from '@/hooks/useSpeechRecognition';
 
 /* ── ting sound ───────────────────────────────────────────── */
 
@@ -161,7 +139,7 @@ const LuckyVoiceGame = () => {
     recognition.lang = 'en-US';
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.maxAlternatives = 3;
+    recognition.maxAlternatives = 5;
     recognitionRef.current = recognition;
 
     const targetWord = words[highlightIdx];
@@ -173,14 +151,14 @@ const LuckyVoiceGame = () => {
       let bestText = '';
       for (let i = 0; i < event.results[0].length; i++) {
         const transcript = event.results[0][i].transcript;
-        const acc = similarity(transcript, targetWord.word);
+        const acc = advancedSimilarity(transcript, targetWord.word);
         if (acc > bestAcc) { bestAcc = acc; bestText = transcript; }
       }
       setSpokenText(bestText);
       setAccuracy(bestAcc);
       setIsListening(false);
 
-      if (bestAcc > 80) {
+      if (bestAcc >= 75) {
         // success → explode
         playCorrect();
         recordResult(targetWord.id, true);
@@ -264,7 +242,8 @@ const LuckyVoiceGame = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto text-center">
+    <GameResponsiveWrapper requireLandscape={false}>
+    <div className="max-w-2xl mx-auto text-center px-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-display font-bold text-foreground">Lucky Voice 🎰🎤</h1>
@@ -411,14 +390,15 @@ const LuckyVoiceGame = () => {
           {accuracy !== null && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <p className="text-sm text-muted-foreground">You said: <span className="font-bold text-foreground">"{spokenText}"</span></p>
-              <p className={`text-2xl font-display font-bold mt-1 ${accuracy > 80 ? 'text-green-500' : 'text-red-500'}`}>
-                {accuracy}% {accuracy > 80 ? '🎉' : '💪 Try Again!'}
+              <p className={`text-2xl font-display font-bold mt-1 ${accuracy >= 75 ? 'text-green-500' : 'text-red-500'}`}>
+                {accuracy}% {accuracy >= 75 ? '🎉' : '💪 Try Again!'}
               </p>
             </motion.div>
           )}
         </motion.div>
       )}
     </div>
+    </GameResponsiveWrapper>
   );
 };
 

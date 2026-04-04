@@ -8,6 +8,7 @@ import { useGrammarPairs } from '@/hooks/useGrammarPairs';
 import { useRecordResult } from '@/hooks/useGameWords';
 import { useGameSounds, getGlobalMuted } from '@/hooks/useGameSounds';
 import { GameResults } from '@/components/GameResults';
+import { LandscapePrompt } from '@/components/LandscapePrompt';
 import chestImg from '@/assets/chest.png';
 import hahaImg from '@/assets/haha.jpg';
 
@@ -309,6 +310,8 @@ const UnderseaKeyMasterGame = () => {
   }
 
   return (
+    <>
+    <LandscapePrompt />
     <div className="relative min-h-[80vh] overflow-hidden rounded-2xl select-none" style={{ cursor: KEY_CURSOR }} onMouseMove={handleMouseMove}>
       <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" src="/media/sea.mp4" />
       <div className="absolute inset-0 bg-blue-900/30" />
@@ -440,6 +443,7 @@ const UnderseaKeyMasterGame = () => {
         )}
       </AnimatePresence>
     </div>
+    </>
   );
 };
 
