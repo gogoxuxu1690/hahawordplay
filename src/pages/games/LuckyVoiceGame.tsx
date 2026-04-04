@@ -158,7 +158,7 @@ const LuckyVoiceGame = () => {
       setAccuracy(bestAcc);
       setIsListening(false);
 
-      if (bestAcc > 80) {
+      if (bestAcc >= 75) {
         // success → explode
         playCorrect();
         recordResult(targetWord.id, true);
