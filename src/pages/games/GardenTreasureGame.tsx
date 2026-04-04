@@ -394,6 +394,7 @@ const GardenTreasureGame = () => {
       <SparkleTrail sparkles={sparkles} />
       <AnimatePresence>{showChest && <TreasureChest onNext={handleChestDone} />}</AnimatePresence>
     </div>
+    </>
   );
 };
 
