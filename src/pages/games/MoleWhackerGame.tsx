@@ -323,6 +323,8 @@ const MoleWhackerGame = () => {
   }
 
   return (
+    <>
+    <LandscapePrompt />
     <div style={{ cursor: 'url("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22 viewBox=%220 0 24 24%22><text y=%2220%22 font-size=%2220%22>🔨</text></svg>") 16 16, auto' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
