@@ -139,7 +139,7 @@ const LuckyVoiceGame = () => {
     recognition.lang = 'en-US';
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.maxAlternatives = 3;
+    recognition.maxAlternatives = 5;
     recognitionRef.current = recognition;
 
     const targetWord = words[highlightIdx];
