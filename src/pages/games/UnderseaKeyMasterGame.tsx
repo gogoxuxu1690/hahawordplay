@@ -8,6 +8,7 @@ import { useGrammarPairs } from '@/hooks/useGrammarPairs';
 import { useRecordResult } from '@/hooks/useGameWords';
 import { useGameSounds, getGlobalMuted } from '@/hooks/useGameSounds';
 import { GameResults } from '@/components/GameResults';
+import { LandscapePrompt } from '@/components/LandscapePrompt';
 import chestImg from '@/assets/chest.png';
 import hahaImg from '@/assets/haha.jpg';
 

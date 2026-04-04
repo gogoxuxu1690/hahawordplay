@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useGameWords, useRecordResult, GameWord } from '@/hooks/useGameWords';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { GameResults } from '@/components/GameResults';
+import { LandscapePrompt } from '@/components/LandscapePrompt';
 import moleImg from '@/assets/mole.png';
 
 const ROUNDS = 10;
