@@ -7,6 +7,7 @@ import { useGameWords } from '@/hooks/useGameWords';
 import { useRecordResult } from '@/hooks/useGameWords';
 import { useGameSounds, getGlobalMuted } from '@/hooks/useGameSounds';
 import { GameResults } from '@/components/GameResults';
+import { LandscapePrompt } from '@/components/LandscapePrompt';
 
 const SPARKLE_LIFETIME = 1000;
 const PIECE_SIZE = 52;
