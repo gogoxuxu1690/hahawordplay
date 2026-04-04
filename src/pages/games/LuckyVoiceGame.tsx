@@ -390,14 +390,15 @@ const LuckyVoiceGame = () => {
           {accuracy !== null && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <p className="text-sm text-muted-foreground">You said: <span className="font-bold text-foreground">"{spokenText}"</span></p>
-              <p className={`text-2xl font-display font-bold mt-1 ${accuracy > 80 ? 'text-green-500' : 'text-red-500'}`}>
-                {accuracy}% {accuracy > 80 ? '🎉' : '💪 Try Again!'}
+              <p className={`text-2xl font-display font-bold mt-1 ${accuracy >= 75 ? 'text-green-500' : 'text-red-500'}`}>
+                {accuracy}% {accuracy >= 75 ? '🎉' : '💪 Try Again!'}
               </p>
             </motion.div>
           )}
         </motion.div>
       )}
     </div>
+    </GameResponsiveWrapper>
   );
 };
 
