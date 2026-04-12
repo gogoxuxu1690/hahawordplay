@@ -313,6 +313,19 @@ const ManageWords = () => {
     sonnerToast.success('Group order updated!');
   }, [groups]);
 
+  const toggleGroupActive = useCallback(async (id: string, value: boolean) => {
+    setGroups(prev => prev.map(g => g.id === id ? { ...g, is_active: value } : g));
+    await supabase.from('groups').update({ is_active: value }).eq('id', id);
+    sonnerToast.success(value ? 'Group visible in Play Tab' : 'Group hidden from Play Tab');
+  }, []);
+
+  const toggleAll = useCallback(async (value: boolean) => {
+    setGroups(prev => prev.map(g => ({ ...g, is_active: value })));
+    const updates = groups.map(g => supabase.from('groups').update({ is_active: value }).eq('id', g.id));
+    await Promise.all(updates);
+    sonnerToast.success(value ? 'All groups enabled' : 'All groups disabled');
+  }, [groups]);
+
   const activeGroup = activeId ? groups.find(g => g.id === activeId) : null;
 
   return (
@@ -379,6 +392,7 @@ const ManageWords = () => {
                     onEditWord={(word) => openWordDialog(group.id, word)}
                     onDeleteWord={deleteWord}
                     onSpeak={speak}
+                    onToggleActive={toggleGroupActive}
                   />
                 );
               })}
