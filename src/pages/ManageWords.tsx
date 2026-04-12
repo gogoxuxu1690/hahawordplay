@@ -367,6 +367,15 @@ const ManageWords = () => {
           <p className="text-muted-foreground">Create your first vocabulary group to get started!</p>
         </motion.div>
       ) : (
+        <>
+          <div className="flex items-center justify-end gap-3 mb-4">
+            <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={() => toggleAll(true)}>
+              <Eye className="w-4 h-4" /> Enable All
+            </Button>
+            <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={() => toggleAll(false)}>
+              <EyeOff className="w-4 h-4" /> Disable All
+            </Button>
+          </div>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
