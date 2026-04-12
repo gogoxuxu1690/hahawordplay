@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Edit2, Volume2, ChevronDown, ChevronRight, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Edit2, Volume2, ChevronDown, ChevronRight, GripVertical, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,6 +39,7 @@ interface Group {
   emoji: string;
   icon_name: string | null;
   sort_order: number;
+  is_active: boolean;
 }
 
 interface Word {
@@ -68,11 +70,12 @@ interface SortableGroupProps {
   onEditWord: (word: Word) => void;
   onDeleteWord: (id: string) => void;
   onSpeak: (text: string, gender: string) => void;
+  onToggleActive: (id: string, value: boolean) => void;
 }
 
 const SortableGroupCard = ({
   group, groupWords, isExpanded, isDragging, onToggleExpand,
-  onEdit, onDelete, onAddWord, onEditWord, onDeleteWord, onSpeak,
+  onEdit, onDelete, onAddWord, onEditWord, onDeleteWord, onSpeak, onToggleActive,
 }: SortableGroupProps) => {
   const {
     attributes, listeners, setNodeRef, transform, transition, isDragging: isSortableDragging,
@@ -86,7 +89,7 @@ const SortableGroupCard = ({
   };
 
   return (
-    <div ref={setNodeRef} style={style as React.CSSProperties} className="bg-card rounded-2xl game-card-shadow overflow-hidden">
+    <div ref={setNodeRef} style={style as React.CSSProperties} className={`bg-card rounded-2xl game-card-shadow overflow-hidden transition-opacity ${!group.is_active ? 'opacity-50' : ''}`}>
       <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/30 transition-colors">
         <div className="flex items-center gap-3 flex-1 min-w-0" onClick={onToggleExpand}>
           {/* Drag handle */}
@@ -106,6 +109,14 @@ const SortableGroupCard = ({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 mr-2" onClick={e => e.stopPropagation()}>
+            <span className="text-xs text-muted-foreground hidden sm:inline">{group.is_active ? 'Visible' : 'Hidden'}</span>
+            <Switch
+              checked={group.is_active}
+              onCheckedChange={(val) => onToggleActive(group.id, val)}
+              aria-label="Show in Play Tab"
+            />
+          </div>
           <Button variant="ghost" size="sm" className="rounded-xl" onClick={e => { e.stopPropagation(); onEdit(); }}>
             <Edit2 className="w-4 h-4" />
           </Button>
