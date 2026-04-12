@@ -420,6 +420,7 @@ const ManageWords = () => {
             ) : null}
           </DragOverlay>
         </DndContext>
+        </>
       )}
 
       {/* Word Dialog */}
