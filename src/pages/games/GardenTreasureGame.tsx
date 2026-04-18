@@ -38,17 +38,59 @@ function generateDistractors(word: string, count: number): string[] {
 }
 
 function scatterPieces(chars: string[], distractors: string[]): Piece[] {
-  const margin = 80;
-  const topMargin = 100;
-  const maxW = Math.min(window.innerWidth, 900) - margin * 2;
-  const maxH = Math.min(window.innerHeight - 200, 500) - margin;
+  const sideMargin = 60;
+  const topMargin = 110;
+  const bottomMargin = 90;
+  const vw = Math.min(window.innerWidth, 1200);
+  const vh = Math.max(window.innerHeight, 600);
+  const maxW = vw - sideMargin * 2;
+  const maxH = Math.min(vh - topMargin - bottomMargin, 560);
+  const minDist = 90; // minimum distance between pieces
+
+  const total = chars.length + distractors.length;
+  // Build a grid of candidate cells to ensure even spread
+  const cols = Math.max(2, Math.ceil(Math.sqrt(total * (maxW / maxH))));
+  const rows = Math.max(2, Math.ceil(total / cols));
+  const cellW = maxW / cols;
+  const cellH = maxH / rows;
+
+  const cells: { cx: number; cy: number }[] = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      cells.push({ cx: c, cy: r });
+    }
+  }
+  // Shuffle cells
+  for (let i = cells.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cells[i], cells[j]] = [cells[j], cells[i]];
+  }
+
+  const placed: { x: number; y: number }[] = [];
+  const pickPos = (idx: number) => {
+    const cell = cells[idx % cells.length];
+    // Random jitter within the cell, keeping a small inset
+    const jitterX = Math.random() * (cellW - 20);
+    const jitterY = Math.random() * (cellH - 20);
+    let x = sideMargin + cell.cx * cellW + jitterX + 10;
+    let y = topMargin + cell.cy * cellH + jitterY + 10;
+    // Light repulsion if too close to an existing piece
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const tooClose = placed.some(p => Math.hypot(p.x - x, p.y - y) < minDist);
+      if (!tooClose) break;
+      x = sideMargin + Math.random() * maxW;
+      y = topMargin + Math.random() * maxH;
+    }
+    placed.push({ x, y });
+    return { x, y };
+  };
+
   const allPieces: Piece[] = [];
 
   chars.forEach((char, index) => {
+    const { x, y } = pickPos(index);
     allPieces.push({
-      char: char.toUpperCase(), index,
-      x: margin + Math.random() * maxW,
-      y: topMargin + margin + Math.random() * maxH,
+      char: char.toUpperCase(), index, x, y,
       found: false, hovered: false, isDistractor: false,
       uniqueId: `letter-${index}-${char}`,
       asset: GARDEN_ASSETS[Math.floor(Math.random() * GARDEN_ASSETS.length)],
@@ -57,10 +99,9 @@ function scatterPieces(chars: string[], distractors: string[]): Piece[] {
   });
 
   distractors.forEach((char, i) => {
+    const { x, y } = pickPos(chars.length + i);
     allPieces.push({
-      char, index: 100 + i,
-      x: margin + Math.random() * maxW,
-      y: topMargin + margin + Math.random() * maxH,
+      char, index: 100 + i, x, y,
       found: false, hovered: false, isDistractor: true,
       uniqueId: `distractor-${i}-${char}`,
       asset: GARDEN_ASSETS[Math.floor(Math.random() * GARDEN_ASSETS.length)],
@@ -372,8 +413,8 @@ const GardenTreasureGame = () => {
                       left: 5, top: 5,
                       background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                       color: '#1a1a2e',
-                      opacity: piece.hovered ? 1 : 0.4,
-                      filter: piece.hovered ? 'none' : 'blur(2px)',
+                      opacity: piece.hovered ? 1 : 0.1,
+                      filter: piece.hovered ? 'none' : 'blur(5px)',
                       boxShadow: piece.hovered
                         ? '0 0 20px rgba(255,215,0,0.8), 0 0 40px rgba(255,215,0,0.4)'
                         : '0 2px 8px rgba(0,0,0,0.3)',
