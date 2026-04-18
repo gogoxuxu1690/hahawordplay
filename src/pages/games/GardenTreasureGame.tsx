@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX, Volume2 as SpeakerIcon } from 'lucide-react';
 import { useGameWords } from '@/hooks/useGameWords';
 import { useRecordResult } from '@/hooks/useGameWords';
 import { useGameSounds, getGlobalMuted } from '@/hooks/useGameSounds';
