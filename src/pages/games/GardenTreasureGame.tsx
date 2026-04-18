@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX, Volume2 as SpeakerIcon } from 'lucide-react';
 import { useGameWords } from '@/hooks/useGameWords';
 import { useRecordResult } from '@/hooks/useGameWords';
 import { useGameSounds, getGlobalMuted } from '@/hooks/useGameSounds';
@@ -377,8 +377,26 @@ const GardenTreasureGame = () => {
         ⭐ {score} &nbsp;|&nbsp; {currentIdx + 1}/{words.length}
       </div>
 
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 px-6 py-2 rounded-xl bg-black/40 backdrop-blur text-white/80 text-sm font-medium">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 px-6 py-2 rounded-xl bg-black/40 backdrop-blur text-white/80 text-sm font-medium flex items-center gap-2">
         🔍 Find: <span className="text-yellow-300 font-bold tracking-wider">{currentWord?.description || `${chars.length} letters`}</span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!currentWord) return;
+            try { window.speechSynthesis.cancel(); } catch {}
+            const u = new SpeechSynthesisUtterance(currentWord.word);
+            u.lang = 'en-US';
+            u.rate = 0.9;
+            const voices = window.speechSynthesis.getVoices();
+            const preferred = voices.find(v => v.lang.startsWith('en') && (currentWord.voice_gender === 'female' ? /female|woman|samantha|victoria|karen/i.test(v.name) : /male|man|daniel|alex|fred/i.test(v.name)));
+            if (preferred) u.voice = preferred;
+            window.speechSynthesis.speak(u);
+          }}
+          className="ml-1 p-1.5 rounded-full bg-yellow-400/20 hover:bg-yellow-400/40 transition-colors"
+          aria-label="Listen to the word"
+        >
+          <SpeakerIcon className="w-4 h-4 text-yellow-300" />
+        </button>
       </div>
 
       <SlotBar slots={slots} total={chars.length} chars={chars} onDropSlot={handleDropSlot} />
