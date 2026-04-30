@@ -33,7 +33,8 @@ export function useGameWords(maxWords = 10) {
       const { data: allWords } = await supabase
         .from('words')
         .select('*')
-        .in('group_id', groupIds);
+        .in('group_id', groupIds)
+        .eq('is_active', true);
 
       if (!allWords) { setLoading(false); return; }
 
