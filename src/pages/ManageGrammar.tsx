@@ -322,6 +322,7 @@ const ManageGrammar = () => {
             );
           })}
         </div>
+        </>
       )}
 
       {/* Pair Dialog */}
