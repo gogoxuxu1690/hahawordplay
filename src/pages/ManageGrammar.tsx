@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast as sonnerToast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -326,6 +327,19 @@ const ManageGrammar = () => {
                   👨 Male
                 </Button>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Group</Label>
+              <Select value={pairGroupId} onValueChange={setPairGroupId}>
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="Select a group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {groups.map(g => (
+                    <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Button onClick={savePair} className="w-full rounded-xl font-bold">Save Pair</Button>
           </div>
