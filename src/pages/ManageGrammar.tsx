@@ -154,6 +154,12 @@ const ManageGrammar = () => {
     toast({ title: 'Pair deleted' });
   };
 
+  const togglePairActive = async (id: string, value: boolean) => {
+    setPairs(prev => prev.map(p => p.id === id ? { ...p, is_active: value } : p));
+    await supabase.from('grammar_pairs').update({ is_active: value }).eq('id', id);
+    sonnerToast.success(value ? 'Pair visible in games' : 'Pair hidden from games');
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
