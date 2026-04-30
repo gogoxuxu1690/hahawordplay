@@ -78,6 +78,7 @@ export type Database = {
           created_at: string
           group_id: string
           id: string
+          is_active: boolean
           question: string
           question_image_url: string | null
           user_id: string
@@ -89,6 +90,7 @@ export type Database = {
           created_at?: string
           group_id: string
           id?: string
+          is_active?: boolean
           question: string
           question_image_url?: string | null
           user_id: string
@@ -100,6 +102,7 @@ export type Database = {
           created_at?: string
           group_id?: string
           id?: string
+          is_active?: boolean
           question?: string
           question_image_url?: string | null
           user_id?: string
@@ -214,6 +217,7 @@ export type Database = {
           group_id: string
           id: string
           image_url: string | null
+          is_active: boolean
           user_id: string
           voice_gender: string
           word: string
@@ -224,6 +228,7 @@ export type Database = {
           group_id: string
           id?: string
           image_url?: string | null
+          is_active?: boolean
           user_id: string
           voice_gender?: string
           word: string
@@ -234,6 +239,7 @@ export type Database = {
           group_id?: string
           id?: string
           image_url?: string | null
+          is_active?: boolean
           user_id?: string
           voice_gender?: string
           word?: string
