@@ -328,6 +328,19 @@ const ManageGrammar = () => {
                 </Button>
               </div>
             </div>
+            <div className="space-y-2">
+              <Label>Group</Label>
+              <Select value={pairGroupId} onValueChange={setPairGroupId}>
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="Select a group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {groups.map(g => (
+                    <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Button onClick={savePair} className="w-full rounded-xl font-bold">Save Pair</Button>
           </div>
         </DialogContent>
