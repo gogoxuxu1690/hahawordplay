@@ -162,6 +162,18 @@ const ManageGrammar = () => {
     sonnerToast.success(value ? 'Pair visible in games' : 'Pair hidden from games');
   };
 
+  const toggleGroupActive = async (id: string, value: boolean) => {
+    setGroups(prev => prev.map(g => g.id === id ? { ...g, is_active: value } : g));
+    await (supabase.from('grammar_groups') as any).update({ is_active: value }).eq('id', id);
+    sonnerToast.success(value ? 'Group visible in Play Tab' : 'Group hidden from Play Tab');
+  };
+
+  const toggleAllGroups = async (value: boolean) => {
+    setGroups(prev => prev.map(g => ({ ...g, is_active: value })));
+    await Promise.all(groups.map(g => (supabase.from('grammar_groups') as any).update({ is_active: value }).eq('id', g.id)));
+    sonnerToast.success(value ? 'All groups enabled' : 'All groups disabled');
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
