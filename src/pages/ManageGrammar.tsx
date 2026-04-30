@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
+import { toast as sonnerToast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +28,7 @@ interface GrammarPair {
   answer_image_url: string | null;
   voice_gender: string;
   group_id: string;
+  is_active: boolean;
 }
 
 const GroupIcon = ({ group, size = 24 }: { group: GrammarGroup; size?: number }) => {
@@ -234,7 +237,7 @@ const ManageGrammar = () => {
                     >
                       <div className="p-4 space-y-3">
                         {groupPairs.map(pair => (
-                          <div key={pair.id} className="p-3 rounded-xl bg-muted/50 space-y-2">
+                          <div key={pair.id} className={`p-3 rounded-xl bg-muted/50 space-y-2 transition-opacity ${!pair.is_active ? 'opacity-50' : ''}`}>
                             <div className="flex items-start gap-3">
                               {pair.question_image_url && (
                                 <img src={pair.question_image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
@@ -253,7 +256,12 @@ const ManageGrammar = () => {
                                 <p className="font-bold text-foreground">{pair.answer}</p>
                               </div>
                             </div>
-                            <div className="flex items-center justify-end gap-1">
+                            <div className="flex items-center justify-end gap-2">
+                              <Switch
+                                checked={pair.is_active}
+                                onCheckedChange={(val) => togglePairActive(pair.id, val)}
+                                aria-label="Visible in games"
+                              />
                               <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => speak(pair.question, pair.voice_gender)}>
                                 <Volume2 className="w-4 h-4" />
                               </Button>
