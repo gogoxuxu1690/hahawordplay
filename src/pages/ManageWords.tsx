@@ -49,6 +49,7 @@ interface Word {
   image_url: string | null;
   voice_gender: string;
   group_id: string;
+  is_active: boolean;
 }
 
 const GroupIcon = ({ group, size = 24 }: { group: Group; size?: number }) => {
@@ -71,11 +72,12 @@ interface SortableGroupProps {
   onDeleteWord: (id: string) => void;
   onSpeak: (text: string, gender: string) => void;
   onToggleActive: (id: string, value: boolean) => void;
+  onToggleWordActive: (id: string, value: boolean) => void;
 }
 
 const SortableGroupCard = ({
   group, groupWords, isExpanded, isDragging, onToggleExpand,
-  onEdit, onDelete, onAddWord, onEditWord, onDeleteWord, onSpeak, onToggleActive,
+  onEdit, onDelete, onAddWord, onEditWord, onDeleteWord, onSpeak, onToggleActive, onToggleWordActive,
 }: SortableGroupProps) => {
   const {
     attributes, listeners, setNodeRef, transform, transition, isDragging: isSortableDragging,
@@ -139,7 +141,7 @@ const SortableGroupCard = ({
           >
             <div className="p-4 space-y-3">
               {groupWords.map(word => (
-                <div key={word.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
+                <div key={word.id} className={`flex items-center gap-3 p-3 rounded-xl bg-muted/50 transition-opacity ${!word.is_active ? 'opacity-50' : ''}`}>
                   {word.image_url && (
                     <img src={word.image_url} alt={word.word} className="w-12 h-12 rounded-lg object-cover" />
                   )}
@@ -147,6 +149,11 @@ const SortableGroupCard = ({
                     <p className="font-bold text-foreground">{word.word}</p>
                     {word.description && <p className="text-sm text-muted-foreground truncate">{word.description}</p>}
                   </div>
+                  <Switch
+                    checked={word.is_active}
+                    onCheckedChange={(val) => onToggleWordActive(word.id, val)}
+                    aria-label="Visible in games"
+                  />
                   <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => onSpeak(word.word, word.voice_gender)}>
                     <Volume2 className="w-4 h-4" />
                   </Button>
@@ -313,6 +320,12 @@ const ManageWords = () => {
     sonnerToast.success('Group order updated!');
   }, [groups]);
 
+  const toggleWordActive = useCallback(async (id: string, value: boolean) => {
+    setWords(prev => prev.map(w => w.id === id ? { ...w, is_active: value } : w));
+    await supabase.from('words').update({ is_active: value }).eq('id', id);
+    sonnerToast.success(value ? 'Word visible in games' : 'Word hidden from games');
+  }, []);
+
   const toggleGroupActive = useCallback(async (id: string, value: boolean) => {
     setGroups(prev => prev.map(g => g.id === id ? { ...g, is_active: value } : g));
     await supabase.from('groups').update({ is_active: value }).eq('id', id);
@@ -402,6 +415,7 @@ const ManageWords = () => {
                     onDeleteWord={deleteWord}
                     onSpeak={speak}
                     onToggleActive={toggleGroupActive}
+                    onToggleWordActive={toggleWordActive}
                   />
                 );
               })}

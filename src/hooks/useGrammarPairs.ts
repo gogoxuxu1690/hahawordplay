@@ -27,7 +27,8 @@ export function useGrammarPairs(maxPairs = 10) {
       const { data } = await supabase
         .from('grammar_pairs')
         .select('*')
-        .in('group_id', groupIds);
+        .in('group_id', groupIds)
+        .eq('is_active', true);
 
       if (!data) { setLoading(false); return; }
 
