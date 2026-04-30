@@ -213,6 +213,15 @@ const ManageGrammar = () => {
           <p className="text-muted-foreground">Create your first grammar group to get started!</p>
         </motion.div>
       ) : (
+        <>
+        <div className="flex items-center justify-end gap-3 mb-4">
+          <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={() => toggleAllGroups(true)}>
+            <Eye className="w-4 h-4" /> Enable All
+          </Button>
+          <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={() => toggleAllGroups(false)}>
+            <EyeOff className="w-4 h-4" /> Disable All
+          </Button>
+        </div>
         <div className="space-y-4">
           {groups.map((group, i) => {
             const groupPairs = pairs.filter(p => p.group_id === group.id);
@@ -223,7 +232,7 @@ const ManageGrammar = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="bg-card rounded-2xl game-card-shadow overflow-hidden"
+                className={`bg-card rounded-2xl game-card-shadow overflow-hidden transition-opacity ${!group.is_active ? 'opacity-50' : ''}`}
               >
                 <div
                   className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/30 transition-colors"
@@ -237,6 +246,14 @@ const ManageGrammar = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 mr-2" onClick={e => e.stopPropagation()}>
+                      <span className="text-xs text-muted-foreground hidden sm:inline">{group.is_active ? 'Visible' : 'Hidden'}</span>
+                      <Switch
+                        checked={group.is_active}
+                        onCheckedChange={(val) => toggleGroupActive(group.id, val)}
+                        aria-label="Show in Play Tab"
+                      />
+                    </div>
                     <Button variant="ghost" size="sm" className="rounded-xl" onClick={e => { e.stopPropagation(); setEditingGroup(group); setGroupName(group.name); setGroupIconName(group.icon_name || ''); setGroupDialogOpen(true); }}>
                       <Edit2 className="w-4 h-4" />
                     </Button>
