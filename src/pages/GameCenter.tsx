@@ -56,7 +56,7 @@ const GameCenter = () => {
 
   useEffect(() => {
     supabase.from('groups').select('*').eq('is_active', true).order('sort_order').then(({ data }) => setGroups(data || []));
-    supabase.from('grammar_groups').select('*').order('created_at').then(({ data }) => setGrammarGroups(data || []));
+    supabase.from('grammar_groups').select('*').eq('is_active', true).order('created_at').then(({ data }) => setGrammarGroups(data || []));
   }, []);
 
   useEffect(() => {
