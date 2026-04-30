@@ -468,6 +468,19 @@ const ManageWords = () => {
                 </Button>
               </div>
             </div>
+            <div className="space-y-2">
+              <Label>Group</Label>
+              <Select value={wordGroupId} onValueChange={setWordGroupId}>
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="Select a group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {groups.map(g => (
+                    <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Button onClick={saveWord} className="w-full rounded-xl font-bold">Save Word</Button>
           </div>
         </DialogContent>
