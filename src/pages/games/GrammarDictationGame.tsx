@@ -16,7 +16,7 @@ const GrammarDictationGame = () => {
   const { saveSession } = useRecordResult();
 
   const [round, setRound] = useState(0);
-  const [items, setItems] = useState<{ text: string; gender: string }[]>([]);
+  const [items, setItems] = useState<{ text: string; gender: string; questionImage: string | null; question: string }[]>([]);
   const [input, setInput] = useState('');
   const [score, setScore] = useState(0);
   const [correct, setCorrect] = useState(0);
@@ -26,11 +26,13 @@ const GrammarDictationGame = () => {
 
   useEffect(() => {
     if (pairs.length === 0) return;
-    // Randomly pick question or answer from each pair
-    const arr = pairs.map(p => {
-      const useQuestion = Math.random() > 0.5;
-      return { text: useQuestion ? p.question : p.answer, gender: p.voice_gender };
-    });
+    // Always use the Answer text as the dictation content
+    const arr = pairs.map(p => ({
+      text: p.answer,
+      gender: p.voice_gender,
+      questionImage: p.question_image_url,
+      question: p.question,
+    }));
     setItems(arr);
   }, [pairs]);
 
@@ -103,6 +105,10 @@ const GrammarDictationGame = () => {
       <p className="text-sm text-muted-foreground mb-4">Round {round + 1} / {items.length}</p>
 
       <motion.div key={round} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-2xl p-8 game-card-shadow text-center space-y-6">
+        {current.questionImage && (
+          <img src={current.questionImage} alt="hint" className="mx-auto max-h-40 rounded-xl object-contain" />
+        )}
+        <p className="text-sm text-muted-foreground italic">Hint: {current.question}</p>
         <Button variant="outline" size="lg" className="rounded-xl gap-2 mx-auto" onClick={() => speak(current.text, current.gender)}>
           <Volume2 className="w-5 h-5" /> Listen Again
         </Button>

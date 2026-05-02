@@ -224,8 +224,11 @@ const GrammarGardenTreasureGame = () => {
         ⭐ {score} &nbsp;|&nbsp; {currentIdx + 1}/{pairs.length}
       </div>
 
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 px-6 py-2 rounded-xl bg-black/40 backdrop-blur text-white/80 text-sm font-medium">
-        🔍 Question: <span className="text-yellow-300 font-bold">{currentPair?.question}</span>
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-6 py-2 rounded-xl bg-black/40 backdrop-blur text-white/80 text-sm font-medium">
+        {currentPair?.question_image_url && (
+          <img src={currentPair.question_image_url} alt="hint" className="w-12 h-12 rounded-lg object-cover border border-white/30" />
+        )}
+        <span>🔍 Question: <span className="text-yellow-300 font-bold">{currentPair?.question}</span></span>
       </div>
 
       <CollectionBar collected={collected} total={sentenceWords.length} />

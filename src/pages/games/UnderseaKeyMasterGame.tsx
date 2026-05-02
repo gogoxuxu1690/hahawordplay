@@ -113,12 +113,14 @@ const UnderseaKeyMasterGame = () => {
         id: p.id,
         pieces: p.answer.split(/\s+/),
         hint: p.question,
+        hintImage: p.question_image_url as string | null,
       }));
     }
     return words.map(w => ({
       id: w.id,
       pieces: w.word.split(''),
       hint: w.description || `${w.word.length} letters`,
+      hintImage: w.image_url as string | null,
     }));
   }, [isGrammar, words, pairs]);
 
@@ -327,8 +329,11 @@ const UnderseaKeyMasterGame = () => {
         🔑 {score} &nbsp;|&nbsp; {currentIdx + 1}/{puzzles.length}
       </div>
 
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 px-6 py-2 rounded-xl bg-black/40 backdrop-blur text-white/80 text-sm font-medium">
-        🔍 Find: <span className="text-cyan-300 font-bold">{currentPuzzle?.hint}</span>
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-6 py-2 rounded-xl bg-black/40 backdrop-blur text-white/80 text-sm font-medium">
+        {currentPuzzle?.hintImage && (
+          <img src={currentPuzzle.hintImage} alt="hint" className="w-12 h-12 rounded-lg object-cover border border-white/30" />
+        )}
+        <span>🔍 Find: <span className="text-cyan-300 font-bold">{currentPuzzle?.hint}</span></span>
       </div>
 
       <SlotBar slots={slots} total={currentPuzzle?.pieces.length || 0} onDropSlot={handleDropSlot} />
