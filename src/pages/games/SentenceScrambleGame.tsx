@@ -128,7 +128,11 @@ const SentenceScrambleGame = () => {
       <p className="text-sm text-muted-foreground mb-4">Round {round + 1} / {items.length}</p>
 
       <motion.div key={round} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-2xl p-6 game-card-shadow space-y-6">
-        <p className="text-sm text-muted-foreground text-center">Arrange the words in the correct order:</p>
+        {items[round]?.questionImage && (
+          <img src={items[round].questionImage!} alt="hint" className="mx-auto max-h-40 rounded-xl object-contain" />
+        )}
+        <p className="text-base font-bold text-center text-foreground">{items[round]?.question}</p>
+        <p className="text-sm text-muted-foreground text-center">Arrange the words to form the correct answer:</p>
 
         {/* Placed words area */}
         <div className="min-h-[60px] p-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 flex flex-wrap gap-2">
