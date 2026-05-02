@@ -113,12 +113,14 @@ const UnderseaKeyMasterGame = () => {
         id: p.id,
         pieces: p.answer.split(/\s+/),
         hint: p.question,
+        hintImage: p.question_image_url as string | null,
       }));
     }
     return words.map(w => ({
       id: w.id,
       pieces: w.word.split(''),
       hint: w.description || `${w.word.length} letters`,
+      hintImage: w.image_url as string | null,
     }));
   }, [isGrammar, words, pairs]);
 
