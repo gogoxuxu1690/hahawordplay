@@ -30,7 +30,7 @@ const SentenceScrambleGame = () => {
   const { playCorrect, playWrong } = useGameSounds();
   const { saveSession } = useRecordResult();
 
-  const [items, setItems] = useState<{ original: string; tokens: string[] }[]>([]);
+  const [items, setItems] = useState<{ original: string; tokens: string[]; question: string; questionImage: string | null }[]>([]);
   const [round, setRound] = useState(0);
   const [scrambled, setScrambled] = useState<string[]>([]);
   const [placed, setPlaced] = useState<string[]>([]);
@@ -41,10 +41,13 @@ const SentenceScrambleGame = () => {
 
   useEffect(() => {
     if (pairs.length === 0) return;
-    const arr = pairs.map(p => {
-      const text = Math.random() > 0.5 ? p.question : p.answer;
-      return { original: text, tokens: tokenize(text) };
-    });
+    // Always use the Answer text for scrambling
+    const arr = pairs.map(p => ({
+      original: p.answer,
+      tokens: tokenize(p.answer),
+      question: p.question,
+      questionImage: p.question_image_url,
+    }));
     setItems(arr);
   }, [pairs]);
 
