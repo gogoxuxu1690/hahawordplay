@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Volume2 } from 'lucide-react';
@@ -25,6 +25,8 @@ const GrammarDictationGame = () => {
   const [lastCorrect, setLastCorrect] = useState<boolean | null>(null);
   const [finished, setFinished] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const speedRef = useRef(1);
+  useEffect(() => { speedRef.current = speed; }, [speed]);
 
   useEffect(() => {
     if (pairs.length === 0) return;
@@ -38,18 +40,21 @@ const GrammarDictationGame = () => {
     setItems(arr);
   }, [pairs]);
 
-  const speak = useCallback((text: string, gender: string, rate: number) => {
+  const speak = useCallback((text: string, gender: string, rate?: number) => {
+    const effectiveRate = rate ?? speedRef.current;
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US';
-    u.rate = rate;
-    const voices = speechSynthesis.getVoices();
-    const preferred = voices.find(v =>
-      gender === 'male' ? v.name.toLowerCase().includes('male') || v.name.includes('David')
-        : v.name.toLowerCase().includes('female') || v.name.includes('Samantha') || v.name.includes('Zira')
-    );
-    if (preferred) u.voice = preferred;
-    speechSynthesis.speak(u);
+    setTimeout(() => {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      u.rate = Math.max(0.1, Math.min(10, effectiveRate));
+      const voices = speechSynthesis.getVoices();
+      const preferred = voices.find(v =>
+        gender === 'male' ? v.name.toLowerCase().includes('male') || v.name.includes('David')
+          : v.name.toLowerCase().includes('female') || v.name.includes('Samantha') || v.name.includes('Zira')
+      );
+      if (preferred) u.voice = preferred;
+      speechSynthesis.speak(u);
+    }, 80);
   }, []);
 
   useEffect(() => {
@@ -114,7 +119,7 @@ const GrammarDictationGame = () => {
         )}
         <p className="text-sm text-muted-foreground italic">Hint: {current.question}</p>
         <div className="flex items-center justify-center gap-2 flex-wrap">
-          <Button variant="outline" size="lg" className="rounded-xl gap-2" onClick={() => speak(current.text, current.gender, speed)}>
+          <Button variant="outline" size="lg" className="rounded-xl gap-2" onClick={() => speak(current.text, current.gender)}>
             <Volume2 className="w-5 h-5" /> Listen Again
           </Button>
           <Select value={String(speed)} onValueChange={v => setSpeed(parseFloat(v))}>
