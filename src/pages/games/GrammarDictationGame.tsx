@@ -127,8 +127,8 @@ const GrammarDictationGame = () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {[0.5, 0.6, 0.8, 1, 1.25].map(s => (
-                <SelectItem key={s} value={String(s)}>{s === 1 ? '1.0x (Normal)' : `${s}x`}</SelectItem>
+              {[{ label: '0.5x', val: 0.3 }, { label: '0.6x', val: 0.5 }, { label: '0.8x', val: 0.75 }, { label: '1.0x (Normal)', val: 1 }, { label: '1.25x', val: 1.25 }].map(s => (
+                <SelectItem key={s.val} value={String(s.val)}>{s.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
