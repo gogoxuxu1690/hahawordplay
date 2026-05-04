@@ -122,16 +122,28 @@ const GrammarDictationGame = () => {
           <Button variant="outline" size="lg" className="rounded-xl gap-2" onClick={() => speak(current.text, current.gender)}>
             <Volume2 className="w-5 h-5" /> Listen Again
           </Button>
-          <Select value={String(speed)} onValueChange={v => setSpeed(parseFloat(v))}>
-            <SelectTrigger className="w-28 rounded-xl h-11">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[0.5, 0.6, 0.8, 1, 1.25].map(s => (
-                <SelectItem key={s} value={String(s)}>{s === 1 ? '1.0x (Normal)' : `${s}x`}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {(() => {
+            const speedOptions = [
+              { label: '0.5x', val: 0.3 },
+              { label: '0.6x', val: 0.5 },
+              { label: '0.8x', val: 0.75 },
+              { label: '1.0x (Normal)', val: 1 },
+              { label: '1.25x', val: 1.25 },
+            ];
+            const currentLabel = speedOptions.find(o => o.val === speed)?.label ?? `${speed}x`;
+            return (
+              <Select value={String(speed)} onValueChange={v => setSpeed(parseFloat(v))}>
+                <SelectTrigger className="w-32 rounded-xl h-11">
+                  <SelectValue>{currentLabel}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {speedOptions.map(s => (
+                    <SelectItem key={s.val} value={String(s.val)}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            );
+          })()}
         </div>
 
         <div className="max-w-md mx-auto space-y-4">
