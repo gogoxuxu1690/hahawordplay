@@ -54,7 +54,8 @@ const GrammarDictationGame = () => {
 
   useEffect(() => {
     if (items.length > 0 && round < items.length && !finished) {
-      const t = setTimeout(() => speak(items[round].text, items[round].gender), 500);
+      setSpeed(1);
+      const t = setTimeout(() => speak(items[round].text, items[round].gender, 1), 500);
       return () => clearTimeout(t);
     }
   }, [round, items, finished, speak]);
