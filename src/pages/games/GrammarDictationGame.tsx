@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useGrammarPairs } from '@/hooks/useGrammarPairs';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { useRecordResult } from '@/hooks/useGameWords';
@@ -23,6 +24,7 @@ const GrammarDictationGame = () => {
   const [showAnswer, setShowAnswer] = useState(false);
   const [lastCorrect, setLastCorrect] = useState<boolean | null>(null);
   const [finished, setFinished] = useState(false);
+  const [speed, setSpeed] = useState(1);
 
   useEffect(() => {
     if (pairs.length === 0) return;
@@ -36,10 +38,11 @@ const GrammarDictationGame = () => {
     setItems(arr);
   }, [pairs]);
 
-  const speak = useCallback((text: string, gender: string) => {
+  const speak = useCallback((text: string, gender: string, rate: number) => {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'en-US';
+    u.rate = rate;
     const voices = speechSynthesis.getVoices();
     const preferred = voices.find(v =>
       gender === 'male' ? v.name.toLowerCase().includes('male') || v.name.includes('David')
@@ -51,7 +54,8 @@ const GrammarDictationGame = () => {
 
   useEffect(() => {
     if (items.length > 0 && round < items.length && !finished) {
-      const t = setTimeout(() => speak(items[round].text, items[round].gender), 500);
+      setSpeed(1);
+      const t = setTimeout(() => speak(items[round].text, items[round].gender, 1), 500);
       return () => clearTimeout(t);
     }
   }, [round, items, finished, speak]);
@@ -109,9 +113,21 @@ const GrammarDictationGame = () => {
           <img src={current.questionImage} alt="hint" className="mx-auto max-h-40 rounded-xl object-contain" />
         )}
         <p className="text-sm text-muted-foreground italic">Hint: {current.question}</p>
-        <Button variant="outline" size="lg" className="rounded-xl gap-2 mx-auto" onClick={() => speak(current.text, current.gender)}>
-          <Volume2 className="w-5 h-5" /> Listen Again
-        </Button>
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          <Button variant="outline" size="lg" className="rounded-xl gap-2" onClick={() => speak(current.text, current.gender, speed)}>
+            <Volume2 className="w-5 h-5" /> Listen Again
+          </Button>
+          <Select value={String(speed)} onValueChange={v => setSpeed(parseFloat(v))}>
+            <SelectTrigger className="w-28 rounded-xl h-11">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[0.5, 0.6, 0.8, 1, 1.25].map(s => (
+                <SelectItem key={s} value={String(s)}>{s === 1 ? '1.0x (Normal)' : `${s}x`}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="max-w-md mx-auto space-y-4">
           <Input
