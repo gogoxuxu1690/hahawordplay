@@ -119,7 +119,7 @@ const GrammarDictationGame = () => {
         )}
         <p className="text-sm text-muted-foreground italic">Hint: {current.question}</p>
         <div className="flex items-center justify-center gap-2 flex-wrap">
-          <Button variant="outline" size="lg" className="rounded-xl gap-2" onClick={() => speak(current.text, current.gender, speed)}>
+          <Button variant="outline" size="lg" className="rounded-xl gap-2" onClick={() => speak(current.text, current.gender)}>
             <Volume2 className="w-5 h-5" /> Listen Again
           </Button>
           <Select value={String(speed)} onValueChange={v => setSpeed(parseFloat(v))}>
