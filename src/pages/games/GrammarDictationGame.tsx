@@ -24,6 +24,7 @@ const GrammarDictationGame = () => {
   const [showAnswer, setShowAnswer] = useState(false);
   const [lastCorrect, setLastCorrect] = useState<boolean | null>(null);
   const [finished, setFinished] = useState(false);
+  const [speed, setSpeed] = useState(1);
 
   useEffect(() => {
     if (pairs.length === 0) return;
