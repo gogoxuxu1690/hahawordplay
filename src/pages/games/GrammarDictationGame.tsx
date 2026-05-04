@@ -38,10 +38,11 @@ const GrammarDictationGame = () => {
     setItems(arr);
   }, [pairs]);
 
-  const speak = useCallback((text: string, gender: string) => {
+  const speak = useCallback((text: string, gender: string, rate: number) => {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'en-US';
+    u.rate = rate;
     const voices = speechSynthesis.getVoices();
     const preferred = voices.find(v =>
       gender === 'male' ? v.name.toLowerCase().includes('male') || v.name.includes('David')
