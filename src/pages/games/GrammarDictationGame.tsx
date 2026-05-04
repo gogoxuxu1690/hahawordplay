@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useGrammarPairs } from '@/hooks/useGrammarPairs';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { useRecordResult } from '@/hooks/useGameWords';
