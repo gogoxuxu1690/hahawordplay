@@ -40,18 +40,21 @@ const GrammarDictationGame = () => {
     setItems(arr);
   }, [pairs]);
 
-  const speak = useCallback((text: string, gender: string, rate: number) => {
+  const speak = useCallback((text: string, gender: string, rate?: number) => {
+    const effectiveRate = rate ?? speedRef.current;
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US';
-    u.rate = rate;
-    const voices = speechSynthesis.getVoices();
-    const preferred = voices.find(v =>
-      gender === 'male' ? v.name.toLowerCase().includes('male') || v.name.includes('David')
-        : v.name.toLowerCase().includes('female') || v.name.includes('Samantha') || v.name.includes('Zira')
-    );
-    if (preferred) u.voice = preferred;
-    speechSynthesis.speak(u);
+    setTimeout(() => {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      u.rate = Math.max(0.1, Math.min(10, effectiveRate));
+      const voices = speechSynthesis.getVoices();
+      const preferred = voices.find(v =>
+        gender === 'male' ? v.name.toLowerCase().includes('male') || v.name.includes('David')
+          : v.name.toLowerCase().includes('female') || v.name.includes('Samantha') || v.name.includes('Zira')
+      );
+      if (preferred) u.voice = preferred;
+      speechSynthesis.speak(u);
+    }, 80);
   }, []);
 
   useEffect(() => {
