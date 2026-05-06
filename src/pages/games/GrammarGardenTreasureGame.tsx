@@ -79,7 +79,7 @@ const TreasureChest = ({ onDone }: { onDone: () => void }) => {
 
 const GrammarGardenTreasureGame = () => {
   const navigate = useNavigate();
-  const { pairs, loading } = useGrammarPairs(10);
+  const { pairs, loading } = useGrammarPairs(20);
   const { saveSession } = useRecordResult();
   const { playCorrect, playWrong, playFinish } = useGameSounds();
 

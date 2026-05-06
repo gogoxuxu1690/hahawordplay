@@ -101,7 +101,7 @@ const UnderseaKeyMasterGame = () => {
   const isGrammar = !!searchParams.get('grammar_groups');
 
   const { words, loading: wordsLoading } = useGameWords(isGrammar ? 0 : 20);
-  const { pairs, loading: pairsLoading } = useGrammarPairs(isGrammar ? 10 : 0);
+  const { pairs, loading: pairsLoading } = useGrammarPairs(isGrammar ? 20 : 0);
   const { recordResult, saveSession } = useRecordResult();
   const { playCorrect, playWrong, playFinish } = useGameSounds();
 

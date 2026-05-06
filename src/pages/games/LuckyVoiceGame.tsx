@@ -31,7 +31,7 @@ const MAX_INTERVAL = 400; // ms slowest at end
 /* ── component ────────────────────────────────────────────── */
 
 const LuckyVoiceGame = () => {
-  const { words, loading } = useGameWords(10);
+  const { words, loading } = useGameWords(20);
   const { recordResult, saveSession } = useRecordResult();
   const { playCorrect, playWrong, playFinish } = useGameSounds();
 
