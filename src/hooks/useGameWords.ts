@@ -11,7 +11,7 @@ export interface GameWord {
   voice_gender: string;
 }
 
-export function useGameWords(maxWords = 10) {
+export function useGameWords(maxWords = 20) {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [words, setWords] = useState<GameWord[]>([]);

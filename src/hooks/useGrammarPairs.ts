@@ -13,7 +13,7 @@ export interface GrammarPair {
   group_id: string;
 }
 
-export function useGrammarPairs(maxPairs = 10) {
+export function useGrammarPairs(maxPairs = 20) {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [pairs, setPairs] = useState<GrammarPair[]>([]);
