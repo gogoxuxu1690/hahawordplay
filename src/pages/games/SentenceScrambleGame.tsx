@@ -26,7 +26,7 @@ function tokenize(sentence: string): string[] {
 
 const SentenceScrambleGame = () => {
   const navigate = useNavigate();
-  const { pairs, loading } = useGrammarPairs(10);
+  const { pairs, loading } = useGrammarPairs(20);
   const { playCorrect, playWrong } = useGameSounds();
   const { saveSession } = useRecordResult();
 

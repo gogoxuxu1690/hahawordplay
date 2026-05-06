@@ -11,7 +11,7 @@ import { advancedSimilarity, useSpeechRecognition } from '@/hooks/useSpeechRecog
 const CORRECT_THRESHOLD = 75;
 
 const VoiceMasterGame = () => {
-  const { words, loading } = useGameWords(10);
+  const { words, loading } = useGameWords(20);
   const { recordResult, saveSession } = useRecordResult();
   const { playCorrect, playWrong, playFinish } = useGameSounds();
 
